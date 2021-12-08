@@ -52,6 +52,17 @@ JMS is a specification for messaging services in Java applications. It is mainta
 
 **JMS is for messaging what JDBC is for databases**.
 
+In this course we will use Apache ActiveMQ Artemis as JMS provider. It is a JMS client. Once installed we need to create a broker ? and run it. We'll need to create the <u>administered objects</u>:
+- ConnectionFactory
+- Queue (for P2P messaging)
+- Topic (for PUB-SUB messaging)
+
+The application will access the administered objects through **JNDI** (Java Naming and Directory Interface), from both the producer and the consumer side.
+
+![image info](./pictures/jndi.png)
+
+The JMS provider will give us durability, scalability, acknowledgment, transaction management, clustering and more.
+
 ## The two messaging models
 JMS supports two types of messaging models: Point-to-Point and Publish/Subscriber.
 
@@ -62,10 +73,15 @@ In Point-to-Point messaging the message that is put into the queue is consumed b
  
 P2P messaging supports **asynchronous fire and forget**, which means that the producer application will send the message to the JMS provider and will forget it. The consumer application will then consume and process it however it wants. However, it also supports **synchronous request/replay messaging**. In this case, after the producer applications send a message to the queue, the consumer application receives it, process it, and send a message back to the producer app. through a different queue. The producer will read this message as a response.
 
-![image info](./pictures/point_to_point.png)
+![image info](./pictures/point_to_point2.png)
 
 ### Publish/Subscribe
-In the Publish/Subscribe (PUB-SUB) messaging model
+In the Publish/Subscribe (PUB-SUB) messaging model the messages are published to a virtual channel called **topic**. We will have only one producer, but many consumers called "Subscribers". The same message will be received my multiple subscribers (applications). 
+
+In the PUB-SUB messaging model messages are automatically broadcasted the consumers, without them having to request or pull the topic. In other words, it is a push model. So, after the producer sends the message to the topic, the JMS provider will ensure that that message is sent to all the subscribers subscribed to that topic.
+
+![image info](./pictures/publish_subscribe.png)
+
 
 
 
