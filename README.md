@@ -46,6 +46,27 @@ Messaging also **reduce system bottlenecks** and **increase scalability**. If a 
 
 ![image info](./pictures/system_bottleneck.png)
 
-__
+
+## What is JMS
+JMS is a specification for messaging services in Java applications. It is maintained by Oracle. All Messaging Servers, irrespective of the vendor, must implement it. Developers use the APIs JMS provides. The current version of JMS is 2.0, and it is a big improvement over the earlier version 1.2.
+
+**JMS is for messaging what JDBC is for databases**.
+
+## The two messaging models
+JMS supports two types of messaging models: Point-to-Point and Publish/Subscriber.
+
+### Point-to-Point
+The Point-to-Point (P2P) messaging model allows sending and receiving messages both synchronously and asynchronously, through channels called **queues**. The JMS provider allow creating queues. There will be a Producer, or Sender, application adding messages to the queue. And there will be a Receiver, or Consumer, application taking the messages from the queue.
+
+In Point-to-Point messaging the message that is put into the queue is consumed by only one application and then removed from the queue. The JMS provider will ensure this.
+ 
+P2P messaging supports **asynchronous fire and forget**, which means that the producer application will send the message to the JMS provider and will forget it. The consumer application will then consume and process it however it wants. However, it also supports **synchronous request/replay messaging**. In this case, after the producer applications send a message to the queue, the consumer application receives it, process it, and send a message back to the producer app. through a different queue. The producer will read this message as a response.
+
+![image info](./pictures/point_to_point.png)
+
+### Publish/Subscribe
+In the Publish/Subscribe (PUB-SUB) messaging model
+
+
 
 
