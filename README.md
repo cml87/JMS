@@ -96,7 +96,7 @@ $ artemis run
 ```
 sudo privileges may be needed depending on where we created the server. This command will create a set of predefined queues and topics on the fly. Startup logs will be print out with all the  useful information about the started services, similar to when we start an application server such as Wildfly.
 
-The file `mybroker/etc/broker.xml` will be a configuration file with lots of configuration, including queues and topics. We can edit this file directly or in the jndi.properties file? to create queues.
+The file `mybroker/etc/broker.xml` will be a configuration file with lots of configuration, including queues and topics. We can edit this file directly, or in the jndi.properties file of our project, to create queues.
 
 ## Components of the JMS 1.x API
 The 7 important components (classes) of the JMS 1.x API are:
@@ -111,3 +111,64 @@ The 7 important components (classes) of the JMS 1.x API are:
 The ConnectionFactory and the Destination are provided by the JMS provider, which will create and put them in the JNDI registry ?, from where we can retrieve them. From the ConnectionFactory we get a Connection. From the Connection we then get a Session.
 
 A Session is a unit of work. We can create any number of session using a single connection to the JMS provider (server?). From the Session we can create a Message and a MessageProducer to send the message. In the consumer part of the application we'll also use a Session to create a MessageConsumer to consume the message. We will have queue producers/consumers and topic producer/consumer.
+
+## Project setup
+A pom file for our messaging example project can be:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>jmsfundamentals</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>JMS Fundamentals</name>
+    <description>Demo project for JMS</description>
+
+    <properties>
+        <java.version>1.8</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>5.2.0.RELEASE</version>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.activemq/artemis-jms-client-all -->
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>artemis-jms-client-all</artifactId>
+            <version>2.6.4</version>
+        </dependency>
+
+    </dependencies>
+</project>
+```
+
+The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources directory.
