@@ -24,12 +24,28 @@ Messaging is the process of exchanging business data or information across appli
 3. Receiver (an application)
 4. The Messaging Server, or MOM (Message Oriented Middleware): takes the incoming message and ensure it is delivered to the proper receiver.
 
-The Messaging Server provides useful services such as fault tolerance, load balancing, scalability, transaction management etc. Example of MOMs (JMS providers) are:
+The Messaging Server provides useful services such as fault tolerance, load balancing, scalability, transaction management among others. Example of MOMs (JMS providers) are:
 - Apache ActiveMQ
 - SonicMQ
 - IBM WebsphereMQ
 - TibcoMQ
 - RabbitMQ
 
-![image info](./pictures/messaging_system.png)
+  ![image info](./pictures/messaging_system.png)
+  
+## Messaging advantages
+A messaging server decouples the sender and receiver applications allowing for heterogeneous integration. Each application can be a service or a micro-service, developed in different programming languages and running on completely different environments. Moreover, they can be replaced at any time, as they will all fallow the same (abstract) contract set by the MOM. This **increase the flexibility** of our application, also good for microservices.
+
+![image info](./pictures/heterogeneous_integration.png)
+
+Before messaging came in, applications communication was made through a database or making remote procedural calls. This introduced tight coupling among applications ?. Messaging brought in the desired **loose coupling**, making applications need to know nothing about each other. All the request and response process is now mediated through the MOM. 
+
+Compared to web services (HTTP request/response), MOMs are more reliable as request and response messages are persisted, so there are much fewer chances they are lost.
+
+Messaging also **reduce system bottlenecks** and **increase scalability**. If a queue only has one receiver application and there are much more messages in the queue than the app can process, we can introduce more instances of the same consumer application set to listen the same queue. In other words, we can spin off more instances of the consumer application as the load increase, and they will work asynchronously !
+
+![image info](./pictures/system_bottleneck.png)
+
+__
+
 
