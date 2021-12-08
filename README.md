@@ -83,6 +83,31 @@ In the PUB-SUB messaging model messages are automatically broadcasted the consum
 ![image info](./pictures/publish_subscribe.png)
 
 
+## Apache ActiveMQ installation
+I installed Apache ActiveMQ 2.19 by downloading it from https://activemq.apache.org/components/artemis/download/ and unzipping it in /opt.
 
+Once "installed" I need to go to `/opt/apache-artemis-2.19.0/bin/` and run 
+```text
+$ ./bin/artemis create brockers/mybroker
+```
+to _create_ a JMS broker, or server. I decided to create my brokers inside `/opt/apache-artemis-2.19.0/brokers/`, but they can be created anywhere. The broker name I chose is `mybroker`. Now go to the `bin` directory inside the created broker directory and run
+```text
+$ artemis run
+```
+sudo privileges may be needed depending on where we created the server. This command will create a set of predefined queues and topics on the fly. Startup logs will be print out with all the  useful information about the started services, similar to when we start an application server such as Wildfly.
 
+The file `mybroker/etc/broker.xml` will be a configuration file with lots of configuration, including queues and topics. We can edit this file directly or in the jndi.properties file? to create queues.
 
+## Components of the JMS 1.x API
+The 7 important components (classes) of the JMS 1.x API are:
+1. Connection Factory
+2. Destination: a queue in case of P2P messaging, or a topic, in case of PUB-SUB messaging.
+3. Connection
+4. Session
+5. Message
+6. Message Producer
+7. Message Consumer
+ 
+The ConnectionFactory and the Destination are provided by the JMS provider, which will create and put them in the JNDI registry ?, from where we can retrieve them. From the ConnectionFactory we get a Connection. From the Connection we then get a Session.
+
+A Session is a unit of work. We can create any number of session using a single connection to the JMS provider (server?). From the Session we can create a Message and a MessageProducer to send the message. In the consumer part of the application we'll also use a Session to create a MessageConsumer to consume the message. We will have queue producers/consumers and topic producer/consumer.
