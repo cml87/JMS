@@ -171,4 +171,28 @@ A pom file for our messaging example project can be:
 </project>
 ```
 
-The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources directory.
+The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources' directory.
+
+_________
+# JNDI
+
+Application Servers can host a set of ready-to-use Java objects that enterprise applications can request and use. These objects will be pre-created and published in the server under the some name, so the application can look up them, without needing to create them over and over again. It is like a registry of objects.
+
+Java Naming and Directory Interface (JNDI) is about registering and finding objects in distributed applications (enterprise applications deployed in an application server). It is an API (a standard) that can be used for binding and accessing objects located in any Java EE or specialized _naming server_ that implement this standard API. Various software vendors (eg. JMS vendors) offer specialized "directory assistance software" that implement the JNDI API.
+
+Every Java EE application server comes with an administration console that allow you to manage (create?) objects in a _JNDI tree_. In the JNDI tree we publish and look up _administered objects_, which are objects configured by the server administrator. Examples of administered objects are database connection pool (Data Source) as well as connection factories and destinations (queues and topics) in JMS servers.
+
+## Naming and Directory service
+A _naming service_ enables you to add, change or delete names of objects that exist in some _naming hierarchy_, so other Java classes can look them up to find their location. For example, the directory of books in a library has the names of the physical locations of the books in the shelves, where we can go and get the books.
+
+A naming service provides a unique name for each entry that is registered, or _bound to_, this service. Every naming service has one or more _contexts_. A context is like a point in a directory tree in which we have other child directories. There will be one, and only one, root context, or node, called _initial context_, like the root directory in a disk. 
+
+All objects in the JNDI tree will have a name by which we look up them. We can therefore call the tree a _naming tree_ as well. A _directory service_, on the other hand, enables us to search the naming tree by object attributes, rather than by object name. For example, imagine an object that represents a computer connected to a network. The object may have the attributes domain name, IP address and listening port. If this object is registered in a directory service, we may look it up by its domain name (eg. amazon.com) and then obtain it's IP and port. DNS servers do exactly this.
+
+Naming and directory services are said to be provided by naming and directory servers, respectively.
+
+To allow client code to do look ups in a JNDI, or naming, tree, there has to be a process that initially binds the objects to the naming tree. This can be handled via a server administration console, or from client code that binds names to a names or directory server of some software that has one.  
+
+Java EE servers bind such objects as EJB, Servlets, JMS, and database connection pools to their naming servers during startup.
+
+All classes and interfaces that support JNDI are located in the package `javax.naming`.
