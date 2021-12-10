@@ -71,14 +71,14 @@ The Point-to-Point (P2P) messaging model allows sending and receiving messages b
 
 In Point-to-Point messaging the message that is put into the queue is consumed by only one application and then removed from the queue. The JMS provider will ensure this.
  
-P2P messaging supports **asynchronous fire and forget**, which means that the producer application will send the message to the JMS provider and will forget it. The consumer application will then consume and process it however it wants. However, it also supports **synchronous request/replay messaging**. In this case, after the producer applications send a message to the queue, the consumer application receives it, process it, and send a message back to the producer app. through a different queue. The producer will read this message as a response.
+P2P messaging supports **asynchronous fire and forget**, which means that the producer application will send the message to the JMS provider and will forget it. The consumer application will then consume and process it however it wants. However, it also supports **synchronous request/replay messaging**. In this case, after the producer application sends a message to the queue, the consumer application receives it, process it, and sends a message back to the producer app. through a different queue. The producer will read this message as a response.
 
 ![image info](./pictures/point_to_point2.png)
 
 ### Publish/Subscribe
 In the Publish/Subscribe (PUB-SUB) messaging model the messages are published to a virtual channel called **topic**. We will have only one producer, but many consumers called "Subscribers". The same message will be received my multiple subscribers (applications). 
 
-In the PUB-SUB messaging model messages are automatically broadcasted the consumers, without them having to request or pull the topic. In other words, it is a push model. So, after the producer sends the message to the topic, the JMS provider will ensure that that message is sent to all the subscribers subscribed to that topic.
+In the PUB-SUB messaging model messages are automatically broadcasted to the consumers, without them having to request or pull the topic. In other words, it is a push model. So, after the producer sends the message to the topic, the JMS provider will ensure the message is sent to all the subscribers subscribed to that topic.
 
 ![image info](./pictures/publish_subscribe.png)
 
@@ -88,13 +88,13 @@ I installed Apache ActiveMQ 2.19 by downloading it from https://activemq.apache.
 
 Once "installed" I need to go to `/opt/apache-artemis-2.19.0/bin/` and run 
 ```text
-$ ./bin/artemis create brockers/mybroker
+$ ./bin/artemis create brokers/mybroker
 ```
-to _create_ a JMS broker, or server. I decided to create my brokers inside `/opt/apache-artemis-2.19.0/brokers/`, but they can be created anywhere. The broker name I chose is `mybroker`. Now go to the `bin` directory inside the created broker directory and run
+to _create_ a **JMS broker**, or server. In this case the name I chose for the broker is "mybroker" . I decided to create my brokers inside the directory `/opt/apache-artemis-2.19.0/brokers/`, but they can be created anywhere. Now go to the `bin` directory inside the created broker directory and run
 ```text
 $ artemis run
 ```
-sudo privileges may be needed depending on where we created the server. This command will create a set of predefined queues and topics on the fly. Startup logs will be print out with all the  useful information about the started services, similar to when we start an application server such as Wildfly.
+sudo privileges may be needed depending on where we created the server. This command will create a set of predefined queues and topics on the fly. Startup logs will be printed out with all the  useful information about the started services, similar to when we start an application server such as Wildfly.
 
 The file `mybroker/etc/broker.xml` will be a configuration file with lots of configuration, including queues and topics. We can edit this file directly, or in the jndi.properties file of our project, to create queues.
 
@@ -108,9 +108,11 @@ The 7 important components (classes) of the JMS 1.x API are:
 6. Message Producer
 7. Message Consumer
  
-The ConnectionFactory and the Destination are provided by the JMS provider, which will create and put them in the JNDI registry ?, from where we can retrieve them. From the ConnectionFactory we get a Connection. From the Connection we then get a Session.
+The ConnectionFactory and the Destination are provided by the JMS provider, which will create and put them in the JNDI registry from where we can retrieve them. From the ConnectionFactory we get a Connection. From the Connection we then get a Session. 
 
 A Session is a unit of work. We can create any number of session using a single connection to the JMS provider (server?). From the Session we can create a Message and a MessageProducer to send the message. In the consumer part of the application we'll also use a Session to create a MessageConsumer to consume the message. We will have queue producers/consumers and topic producer/consumer.
+
+So we have JNDI tree -> ConnectionFactory -> Session -> Message -> MessageProducer or Consumer.
 
 ## Project setup
 A pom file for our messaging example project can be:
@@ -173,6 +175,64 @@ A pom file for our messaging example project can be:
 
 The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources' directory.
 
+Our main class can be: 
+```java
+ /**
+ * JMS 1.1 example
+ */
+public class FirstQueue {
+    public static void main(String[] args){
+
+        InitialContext initialContext = null;
+        Connection connection = null;
+        try {
+
+            // obtain a reference to the root of the JNDI tree of the naming server 
+            // of the JMS server
+            initialContext = new InitialContext();
+
+            ConnectionFactory connectionFactory = (ConnectionFactory) initialContext.lookup("ConnectionFactory");
+            connection = connectionFactory.createConnection();
+            Session session = connection.createSession();
+           
+            Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+            MessageProducer producer = session.createProducer(queue);
+
+            TextMessage message = session.createTextMessage("I am the creator of my destiny");
+            producer.send(message);
+           
+            System.out.println("Message sent: " + message);
+
+            MessageConsumer consumer = session.createConsumer(queue);
+            connection.start(); // start the flow of messages in the queue to the consumers
+
+            // here we block. This is synchronous.
+            TextMessage messageReceived = (TextMessage) consumer.receive(5000);
+            System.out.println("Message received: " + messageReceived.getText());
+
+        } catch (NamingException e) {
+            e.printStackTrace();
+        } catch (JMSException e){
+            e.printStackTrace();
+        } finally {
+            if (initialContext != null) {
+                try {
+                    initialContext.close();
+                } catch (NamingException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (JMSException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+```
 _________
 # JNDI
 ### "Java Programming 24-hour Trainer", Yakov Fain
