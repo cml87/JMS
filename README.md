@@ -175,24 +175,87 @@ The javax and Spring dependencies are not strictly needed, but I include them be
 
 _________
 # JNDI
+### "Java Programming 24-hour Trainer", Yakov Fain
+Application Servers can host a set of ready-to-use Java objects that enterprise applications can request and use. These objects will be pre-created and published in the server under some name, so the application can look up them, without needing to create them over and over again. It is like a registry of objects.
 
-Application Servers can host a set of ready-to-use Java objects that enterprise applications can request and use. These objects will be pre-created and published in the server under the some name, so the application can look up them, without needing to create them over and over again. It is like a registry of objects.
+**Java Naming and Directory Interface (JNDI)** is about registering and finding objects in distributed applications (enterprise applications deployed in one or many application servers, or standalone applications communicating with application servers or JNDI servers of some application). It is an API (a standard) that can be used for binding and accessing objects located in any Java EE or specialized _naming server_ that implement this standard API. Various software vendors (eg. JMS vendors) offer specialized "directory assistance software" that implement the JNDI API.
 
-Java Naming and Directory Interface (JNDI) is about registering and finding objects in distributed applications (enterprise applications deployed in an application server). It is an API (a standard) that can be used for binding and accessing objects located in any Java EE or specialized _naming server_ that implement this standard API. Various software vendors (eg. JMS vendors) offer specialized "directory assistance software" that implement the JNDI API.
-
-Every Java EE application server comes with an administration console that allow you to manage (create?) objects in a _JNDI tree_. In the JNDI tree we publish and look up _administered objects_, which are objects configured by the server administrator. Examples of administered objects are database connection pool (Data Source) as well as connection factories and destinations (queues and topics) in JMS servers.
+Every Java EE application server comes with an administration console that allow you to manage (create?) objects in a _JNDI tree_. In the JNDI tree we publish and look up _administered objects_, which are objects configured by the server administrator. Examples of administered objects are database connection pool (Data Source) as well as connection factories and destinations (queues and topics) in JMS servers. Instead of objects, we can also publish any information that allows retrieving it somehow.
 
 ## Naming and Directory service
-A _naming service_ enables you to add, change or delete names of objects that exist in some _naming hierarchy_, so other Java classes can look them up to find their location. For example, the directory of books in a library has the names of the physical locations of the books in the shelves, where we can go and get the books.
+A **_naming service_** enables you to add, change or delete names of objects that exist in some _naming hierarchy_, so other Java classes can look them up to find their location. For example, the directory of books in a library has the names of the physical locations of the books in the shelves, where we can go and get the books.
 
 A naming service provides a unique name for each entry that is registered, or _bound to_, this service. Every naming service has one or more _contexts_. A context is like a point in a directory tree in which we have other child directories. There will be one, and only one, root context, or node, called _initial context_, like the root directory in a disk. 
 
-All objects in the JNDI tree will have a name by which we look up them. We can therefore call the tree a _naming tree_ as well. A _directory service_, on the other hand, enables us to search the naming tree by object attributes, rather than by object name. For example, imagine an object that represents a computer connected to a network. The object may have the attributes domain name, IP address and listening port. If this object is registered in a directory service, we may look it up by its domain name (eg. amazon.com) and then obtain it's IP and port. DNS servers do exactly this.
+All objects in the JNDI tree will have a name by which we look them up. We can therefore call the tree a _naming tree_ as well. A **_directory service_**, on the other hand, enables us to search the naming tree by object attributes, rather than by object name. For example, imagine an object that represents a computer connected to a network. The object may have the attributes domain name, IP address and listening port. If this object is registered in a directory service, we may look it up by its domain name (eg. amazon.com) and then obtain it's IP and port. DNS servers do exactly this.
 
 Naming and directory services are said to be provided by naming and directory servers, respectively.
 
-To allow client code to do look ups in a JNDI, or naming, tree, there has to be a process that initially binds the objects to the naming tree. This can be handled via a server administration console, or from client code that binds names to a names or directory server of some software that has one.  
+To allow client code to do look ups in a JNDI, or naming, tree, there has to be a process that initially binds the objects to the naming tree. This can be handled via a server administration console, or from client code that binds names to a names, or directory, server, of some software that has one. 
 
-Java EE servers bind such objects as EJB, Servlets, JMS, and database connection pools to their naming servers during startup.
+Java EE servers bind such objects as EJB, Servlets, JMS Connection Factories, and JDBC database connection pools to their naming servers during startup. They may have some of these bindings already predefined.
 
 All classes and interfaces that support JNDI are located in the package `javax.naming`.
+
+## The InitialContext class
+<u>The class `InitialContext` represents the root of a JNDI tree in a naming server</u>. Once a particular resource has been bound to this tree, there are two ways of getting a reference to it:
+
+- If a program is deployed in a Java EE server, we can inject the JNDI resource into it by using the `@Resource` annotation. It is also possible to make a `lookup()` on the `InitialContext` object.
+- If an external Java program needs a JNDI resource of an application server, it has to get a reference to an `InitialContext`  of that application server, and then invoke the method `lookup()`, passing as argument the name of the desired resource. This may be the case of a standalone messaging program that needs to get a reference to the messaging queues bound to the JNDI tree of an application server, or the JNDI tree of a JMS server.
+
+Explicit instantiation of the `InitialContext` is needed only if we are planning to use `lookup()` as opposed to resource injection.
+
+When a Java program runs inside an application server, instantiating and getting a reference to the initial context is simply done by the line:
+```java
+Context initialContext = new InitialContext();
+```
+If on the other hand our program is outside the application server and we want to **get access** to the JNDI tree of the later through its InitialContext class, we need to pass some `Properties` to the InitialContext constructor. The specific properties vary from vendor to vendor of naming or directory service. For example, for the naming service of a Wildfly application server we may need to specify the location of the server, the <u>names of the vendor-specific classes implementing `InitialContext`</u>, and the access credentials:
+```java
+final Properties env = new Propeties();
+
+env.put(Context.INITIAL_CONTEXT_FACTORY, "org.jboss.naming.remote.client.InitialContextFactory");
+
+env.put(Context, PROVIDER_URL, "http-remoting://127.0.0.1:8080");
+
+env.put(Context.SECURITY_PRINCIPAL, "Alex123");
+env.put(Context.SECURITY_CREDENTIALS, "MySecretPwd");
+
+Context initialContext = new InitialContext(env);
+```
+Similarly, if an external program needs to access the InitialContext object in a GlassFish server the code may look like this:
+```java
+final Properties env = new Properties();
+env.setProperty("java.naming.factory.initial", "com.sun.enterprise.naming.SerialInitContextFactory");
+env.setProperty("java.naming.factory.url.pkgs", "com.sun.enterprise.naming");
+env.setProperty("java.naming.factory.state", "com.sun.corba.ee.impl.presentation.rmi.JNDIStateFactoryImpl");
+env.setProperty("org.omg.CORBA.ORBInitialHost", "localhost");
+env.setProperty("org.omg.CORBA.ORBInitialPort", "8080");
+InitialContext initContext = new InitialContext(env);
+```
+We need to read the documentation that comes with our application server to get the proper code for accessing JNDI from an external program.
+
+Notice that in some applications that need access to the JNDI tree of some vendor, it may be enough to define a properties file in place of the `env` variable shown above, such that we do not need to pass any argument to the constructor of `InitialContext`. In this file we must specify the vendor-specific Initial Context class. We may specify other resources as well. (**Am I doing bindings to the JNDI tree or just specifying names for the resources I want to look up later (right members)?**). For example, access to the JNDI tree of an ActiveMQ JMS server can be configured through the `jndi.properties` file:
+```text
+# initial context class
+java.naming.factory.initial=org.apache.activemq.artemis.jndi.ActiveMQInitialContextFactory
+
+# a ConnectionFactory resource
+connectionFactory.ConnectionFactory=tcp://localhost:61616
+
+# a queue resource
+queue.queue/myQueue=myQueue
+```
+After receiving a reference to the InitialContext, we can invoke a lookup() method specifying the name of the required resource. Here is an example of
+getting a reference to a message queue named test:
+```java
+Destination destination = (Destination) initContext.lookup("jms/queue/test");
+```
+And here is an example of getting a reference to an EJB and a default JDBC data source:
+```java
+MySessionBean msb = (MySessionBean) initContext.lookup("java:comp/env/ejb/mySessionBean");
+DataSource ds = (DataSource) initContext.lookup("java:comp/env/jdbc/DefaultDataSource");
+```
+
+JNDI resources can be obtained by injection as well with `@Resource`.
+
+
