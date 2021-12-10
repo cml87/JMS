@@ -258,11 +258,13 @@ connectionFactory.ConnectionFactory=tcp://localhost:61616
 ```
 defines a resource of type "connectionFactory" with name "ConnectionFactory" and with value "tcp:://localhost:61616".
 
+**---->** For the case of the queue, the teacher said it is created by the JMS provider the first time we `lookup()` for it in our code. May be the Connection Factory is also created the first time we lookup for it, buh.
+
 When we create an instance of InitialContext with
 ```java
 initialContext = new InitialContext();
 ```
-it will automatically use the information defined in the application.properties file. 
+it will automatically use the information defined in the application.properties file.  
 _________
 # JNDI
 ### "Java Programming 24-hour Trainer", Yakov Fain
