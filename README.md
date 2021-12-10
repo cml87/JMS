@@ -90,13 +90,15 @@ Once "installed" I need to go to `/opt/apache-artemis-2.19.0/bin/` and run
 ```text
 $ ./bin/artemis create brokers/mybroker
 ```
-to _create_ a **JMS broker**, or server. In this case the name I chose for the broker is "mybroker" . I decided to create my brokers inside the directory `/opt/apache-artemis-2.19.0/brokers/`, but they can be created anywhere. Now go to the `bin` directory inside the created broker directory and run
+to _create_ a **JMS broker**, or server. In this case the name I chose for the broker is "mybroker" . I decided to create my brokers inside the directory `/opt/apache-artemis-2.19.0/brokers/`, but they can be created anywhere. When creating the broker, user and password properties will be asked to be set, as well as whether we want to allow anonymous access to the broker.
+
+Now go to the `bin` directory inside the created broker directory and run
 ```text
 $ artemis run
 ```
 sudo privileges may be needed depending on where we created the server. This command will create a set of predefined queues and topics on the fly. Startup logs will be printed out with all the  useful information about the started services, similar to when we start an application server such as Wildfly.
 
-The file `mybroker/etc/broker.xml` will be a configuration file with lots of configuration, including queues and topics. We can edit this file directly, or in the jndi.properties file of our project, to create queues.
+The file `mybroker/etc/broker.xml` will be a configuration file with lots of configurations, including queues and topics. We can edit this file directly, or the jndi.properties file of our project, to create queues. It seems that if we ask for a queue that doesn't extis, Artemis can create it for us in the fly.
 
 ## Components of the JMS 1.x API
 The 7 important components (classes) of the JMS 1.x API are:
@@ -108,7 +110,7 @@ The 7 important components (classes) of the JMS 1.x API are:
 6. Message Producer
 7. Message Consumer
  
-The ConnectionFactory and the Destination are provided by the JMS provider, which will create and put them in the JNDI registry from where we can retrieve them. From the ConnectionFactory we get a Connection. From the Connection we then get a Session. 
+The **ConnectionFactory** and the **Destination** are provided by the JMS provider, which will create and put them in the JNDI registry from where we can retrieve them. From the ConnectionFactory we get a Connection. From the Connection we then get a Session. 
 
 A Session is a unit of work. We can create any number of session using a single connection to the JMS provider (server?). From the Session we can create a Message and a MessageProducer to send the message. In the consumer part of the application we'll also use a Session to create a MessageConsumer to consume the message. We will have queue producers/consumers and topic producer/consumer.
 
@@ -173,66 +175,94 @@ A pom file for our messaging example project can be:
 </project>
 ```
 
-The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources' directory.
+The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources' directory (in the class path). In this file we will specify the `InitialContext` class, as well as some other propeties that will be used to look up for resources in the JNDI tree of the JMS server.
 
 Our main class can be: 
 ```java
  /**
- * JMS 1.1 example
- */
+ *  JMS 1.1 example. All the boilerplate code is removed with JMS 2.0
+ *  */
 public class FirstQueue {
-    public static void main(String[] args){
+  public static void main(String[] args){
 
-        InitialContext initialContext = null;
-        Connection connection = null;
+    InitialContext initialContext = null;
+    Connection connection = null;
+    try {
+
+      // obtain a reference to the root of the JNDI tree of the naming server 
+      // of the JMS server
+      initialContext = new InitialContext();
+
+      ConnectionFactory connectionFactory = (ConnectionFactory) initialContext.lookup("ConnectionFactory");
+      connection = connectionFactory.createConnection();
+      Session session = connection.createSession();
+
+      Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+      MessageProducer producer = session.createProducer(queue);
+
+      TextMessage message = session.createTextMessage("I am the creator of my destiny");
+      producer.send(message);
+
+      System.out.println("Message sent: " + message);
+
+      MessageConsumer consumer = session.createConsumer(queue);
+      connection.start(); // start the flow of messages in the queue to the consumers.
+      //Tell the JMS provider we are ready to consume the messages
+
+      // here we block. This is synchronous.
+      // throw exception if message is not received after 5 seconds
+      TextMessage messageReceived = (TextMessage) consumer.receive(5000);
+
+      System.out.println("Message received: " + messageReceived.getText());
+
+    } catch (NamingException e) {
+      e.printStackTrace();
+    } catch (JMSException e){
+      e.printStackTrace();
+    } finally {
+      if (initialContext != null) {
         try {
-
-            // obtain a reference to the root of the JNDI tree of the naming server 
-            // of the JMS server
-            initialContext = new InitialContext();
-
-            ConnectionFactory connectionFactory = (ConnectionFactory) initialContext.lookup("ConnectionFactory");
-            connection = connectionFactory.createConnection();
-            Session session = connection.createSession();
-           
-            Queue queue = (Queue) initialContext.lookup("queue/myQueue");
-            MessageProducer producer = session.createProducer(queue);
-
-            TextMessage message = session.createTextMessage("I am the creator of my destiny");
-            producer.send(message);
-           
-            System.out.println("Message sent: " + message);
-
-            MessageConsumer consumer = session.createConsumer(queue);
-            connection.start(); // start the flow of messages in the queue to the consumers
-
-            // here we block. This is synchronous.
-            TextMessage messageReceived = (TextMessage) consumer.receive(5000);
-            System.out.println("Message received: " + messageReceived.getText());
-
+          initialContext.close();
         } catch (NamingException e) {
-            e.printStackTrace();
-        } catch (JMSException e){
-            e.printStackTrace();
-        } finally {
-            if (initialContext != null) {
-                try {
-                    initialContext.close();
-                } catch (NamingException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (JMSException e) {
-                    e.printStackTrace();
-                }
-            }
+          e.printStackTrace();
         }
+      }
+      if (connection != null) {
+        try {
+          connection.close();
+        } catch (JMSException e) {
+          e.printStackTrace();
+        }
+      }
     }
+  }
 }
 ```
+The `jndi.propeties` file used is:
+```text
+# initial context class
+java.naming.factory.initial=org.apache.activemq.artemis.jndi.ActiveMQInitialContextFactory
+
+# a ConnectionFactory resource
+# default location where the JNDI server run??
+connectionFactory.ConnectionFactory=tcp://localhost:61616
+
+# a queue resource
+queue.queue/myQueue=myQueue
+```
+In the queue name specification, the first "queue." indicates it is a queue type of administered object. There is no queue named "myQueue". It will be created dynamically at run time.
+
+These are properties that the ArtemisMQ JMS broker host needs to setup a JNDI tree. I'm not sure whether these properties will just be that, properties to be loaded by our application, or will also create bindings and resources in the JMS server. But I think it defines bindings with the names and types we specify. For example, the line:
+```text
+connectionFactory.ConnectionFactory=tcp://localhost:61616
+```
+defines a resource of type "connectionFactory" with name "ConnectionFactory" and with value "tcp:://localhost:61616".
+
+When we create an instance of InitialContext with
+```java
+initialContext = new InitialContext();
+```
+it will automatically use the information defined in the application.properties file. 
 _________
 # JNDI
 ### "Java Programming 24-hour Trainer", Yakov Fain
