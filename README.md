@@ -258,4 +258,19 @@ DataSource ds = (DataSource) initContext.lookup("java:comp/env/jdbc/DefaultDataS
 
 JNDI resources can be obtained by injection as well with `@Resource`.
 
+JNDI resources can also be references to other resources we create in the Java EE server. One example is a connections pool resource (type `javax.sql.DataSource`) in GlassFish. Here we first create the mentioned resource as a "JDBC Connection Pool" from the console, setting the necessary attributes Username, Password, ServerName, Port and DatabaseName. After we create a JNDI resource, specifically a "JDBC Resource", with a given "JNDI name" and associate it with the just created pool of connections. From our code we can then access this resource which points to a pool of connections as:
+```java
+import javax.annotation.Resource;
+import javax.sql.DataSource;
 
+public class InfoResource {
+
+  @Resource(lookup = "jdbc/utenti") // this is the JNDI name associated 
+                                // with a pool name in the GlassFish console
+  DataSource dataSource;
+
+  // ...
+  
+}
+```
+See Xonya https://www.youtube.com/watch?v=NlifzWtN2cA min 7.

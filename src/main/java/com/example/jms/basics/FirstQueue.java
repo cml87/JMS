@@ -27,6 +27,7 @@ public class FirstQueue {
             //System.out.println("Connection Factory class: "+connectionFactory.getClass());
             connection = connectionFactory.createConnection();
 
+
             ActiveMQJMSConnectionFactory x;
 
             Session session = connection.createSession();
