@@ -175,7 +175,9 @@ A pom file for our messaging example project can be:
 </project>
 ```
 
-The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources' directory (in the class path). In this file we will specify the `InitialContext` class, as well as some other propeties that will be used to look up for resources in the JNDI tree of the JMS server.
+The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources' directory (in the class path). In this file we will specify the `InitialContext` class, as well as some other properties that will be used to look up for resources in the JNDI tree of the JMS server.
+
+## Sending and receiving messages from a Queue
 
 Our main class can be: 
 ```java
@@ -265,6 +267,13 @@ When we create an instance of InitialContext with
 initialContext = new InitialContext();
 ```
 it will automatically use the information defined in the application.properties file.  
+
+
+## Sending and receiving messages from a Topic
+
+
+
+
 _________
 # JNDI
 ### "Java Programming 24-hour Trainer", Yakov Fain

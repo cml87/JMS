@@ -32,6 +32,8 @@ public class FirstQueue {
 
             System.out.println("Message sent: " + message);
 
+            /** Now we'll consume the messages  */
+
             MessageConsumer consumer = session.createConsumer(queue);
             connection.start(); // start the flow of messages in the queue to the consumers.
                                 //Tell the JMS provider we are ready to consume the messages
