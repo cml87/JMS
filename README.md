@@ -550,7 +550,51 @@ Notice how we retrieve the priority of the message with `getJMSPriority()` which
 
 If we don't set a priority for the messages in the producer, a default priority value will be set for them, say 4. In this case the messages will be retrieved by a consumer in the order they were received by the JMS provider.
 
+## Request-replay messages
+A consumer application can send a message to queue, a _request_, from which the message is consumed after by a consumer application. The consumer application can then consume and process this message, sending another one to (another) queue which can be consumed by the producer, as a _replay_. In this scenario, method `replyTo()` and message headers `messageId` and `correlationID` are used. 
+ 
+Here is an example:
+```java
+public class RequestReplyDemo {
+   public static void main(String[] args) throws NamingException {
 
+       // get the reference to the root context of the JNDI tree
+       // This will read the properties file
+       InitialContext initialContext = new InitialContext();
+       Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
+       Queue replyQueue = (Queue) initialContext.lookup("queue/replyQueue");
+
+       // JMSContext will have the Connection and the Session
+       // I think this is either using defaults or properties from jndi.properties file
+       try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+                JMSContext jmsContext = cf.createContext()) {
+
+           /* producer application */
+           JMSProducer producer = jmsContext.createProducer();
+           producer.send(requestQueue, "Arise awake and stop not till the goal is reached");
+
+
+           /* consumer application*/
+           JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
+           String messageReceived = consumer.receiveBody(String.class);
+           System.out.println(messageReceived);
+
+           JMSProducer replyProducer = jmsContext.createProducer();
+           replyProducer.send(replyQueue, "You are awesome!!");
+           /***************************/
+
+
+           /* producer application */
+           JMSConsumer replyConsumer = jmsContext.createConsumer(replyQueue);
+           System.out.println(replyConsumer.receiveBody(String.class));
+
+       }
+   }
+}
+```
+
+
+ Notice that when we create a producer, we don't specify to which destination this producer will eventually send a message. On the other hand, when we create a consumer, we do specify from which destination it will eventually consume messages
 
 
 
