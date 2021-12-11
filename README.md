@@ -175,6 +175,8 @@ A pom file for our messaging example project can be:
 </project>
 ```
 
+Q: What's the difference between a JMS client and a JMS provider?
+
 The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources' directory (in the class path). In this file we will specify the `InitialContext` class, as well as some other properties that will be used to look up for resources in the JNDI tree of the JMS server.
 
 ## Sending and receiving messages from a Queue
@@ -422,6 +424,61 @@ Consuming messages in the queue:
 Message received: Message 1
 Message received: Message 2
 ```
+
+## JMS 2.0 introduced in Java EE 7
+JMS 2.0 makes it very easy to send messages to a queue. It shortens the steps we saw before. JMS 2.0 provides a new class that is the combination of a Connection and a Session, it is a `JMSContext`. From this class we can create then the a `JMSProducer` and a `JMSConsumer`, with which we can send and receive a message in a single line of code. All `JMSContext`, `JMSProducer` and `JMSConsumer` implement `java.lang.AutoClosable` so we will not need to close them explicitly, provided we use them inside a try/catch block. Moreover,`JMSProducer` and `JMSConsumer` give us easy access to a message's Headers, Properties and Body. 
+
+JMS 2.0 in Java EE 7 compatible application server allows injecting the Connection Factory and destination resources easily into our code as:
+```java
+@Inject
+@JMSConnectionFactory("jms/connectionFactory") private JMSContext context;
+
+@Resource(lookup = "jms/dataQueue")
+private Queue dataQueue
+```
+
+With JMS 2.0 we'll create a connection factory object, `ActiveMQConnectionFactory`, and from it we'll instantiate directly a context object, instead of a session, `JMSContext`. The way we'll use this context object to send and receive messages to queues will be similar to what we saw before with the session object.
+
+I think the line 
+```java
+ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+```
+will use default info or info defined in the jndi.propeties file.
+
+With JMS 2.0 it is also possible to make our own customized connection factory. So far we have been using the default connection factory provided by the JMS vendor. This is done through the annotations `@JMSConnectionFactoryDefinitions` and `JMSConnectioFactoryDefinition`, or through xml configuration `<jms-connection-factory>`.
+
+
+
+This is how we send and receive a message from a queue with JMS 2.0:
+```java
+/**
+ *  JMS 2.0 example
+ *  */
+public class JMSContextDemo {
+   public static void main(String[] args) throws NamingException {
+
+       InitialContext initialContext = new InitialContext();
+       Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+
+        // JMSContext will have the ConnectionFactory and the Session
+       try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+                JMSContext jmsContext = cf.createContext()) {
+
+           jmsContext.createProducer().send(queue, "Arise awake and stop not till the goal is reached");
+           String messageReceived = jmsContext.createConsumer(queue).receiveBody(String.class);
+
+           System.out.println("Message is: "+ messageReceived);
+
+       }
+   }
+}
+```
+
+
+
+
+
+
 
 _________
 # JNDI
