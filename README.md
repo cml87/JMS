@@ -447,8 +447,6 @@ will use default info or info defined in the jndi.propeties file.
 
 With JMS 2.0 it is also possible to make our own customized connection factory. So far we have been using the default connection factory provided by the JMS vendor. This is done through the annotations `@JMSConnectionFactoryDefinitions` and `JMSConnectioFactoryDefinition`, or through xml configuration `<jms-connection-factory>`.
 
-
-
 This is how we send and receive a message from a queue with JMS 2.0:
 ```java
 /**
@@ -474,11 +472,37 @@ public class JMSContextDemo {
 }
 ```
 
+## JMS message
 
+Messages communicate all the data an event possible in the JMS specification. A message is divided into three parts: _Header_, _Properties_ and _Body_ (or Payload).
+The Body can be of different types: byte message, text message, object message etc.
 
+The message headers are metadata. There are provider-set headers and developer-set headers. 
 
+**Provider-set headers** are automatically assigned by the provider to a message when it is sent. These may include:
+- JMSDestination: queue or topic to which the message should be delivered.
+- JMSDeliveryMode: eg. persistence or non- persistence message etc.
+- JMSMessageId: message unique id assigned by the provider, so the consumer can identify a particular message.
+- JMSTimeStamp: timestamp at which the message was received by the JMS provider.
+- JMSExpiration: time at which, if reached, the message will be expired?.
+- JMSRedelivered: set by the provider when it re-delivers the message to a particular consumer, because that message was not delivered in its prior try ?
+- JMSPriority: an integer ranged 0-9 meaning priority of the message. 0-4 is called 'normal priority', 5-9 is called high priority. 
 
+**Developer-set headers** include:
+- JMSReplayTo: The producer application will set this header so that the consumer application know which destination it should replay back on, in a request/replay scenario.
+- JMSCorrelationID: also used in a request/replay scenario. The consumer application will set it with the JMSMessageId of the request message for which it is sending the response back. This way the producer application can relate the incoming response with the particular request it previously sent. So it is to "correlate" request with its response.
+- JMSType: set by the producer application. Used to convey what type of message is being sent
 
+Properties are also divided into provider-set properties and developer-set properties. At the producer side, **developer-set** (or **application specific**) properties can be added to the message as key-value pair, with method `setXXXProperty`. XXX stands for a particular type, such as integer, boolean, string etc (primitives ?). At the consumer end we can then retrieve any property with `getXXXPropety`. 
+
+**Provider-set** properties include JMSXUserID, JMSXAppID, JMSXProducerTXID, JMSXConsumerTXID, JMSXRcvTimeStamp, JMSDeliveryCount, JMSXState, JMSXGroupID and JMSXGroupSeq. It is not mandatory for the provider to support all of them. We don't usually touch the provider-set properties.
+
+The properties JMSXGroupID and JMSXGroupSeq are used when we work with groups of messages, ie. instead of sending one message we can send a group of messages and process them.
+
+Messages can be filtered by both its headers and its properties.
+
+## Message priority
+The priority of the messages present in a queue affect the order in which they are received when we call `receive()` in a consumer.
 
 _________
 # JNDI

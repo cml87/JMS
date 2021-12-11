@@ -27,6 +27,7 @@ public class JMSContextDemo {
            jmsContext.createProducer().send(queue, "Arise awake and stop not till the goal is reached");
 
            // receive directly the body of the message as a String
+           // jmsContext.createConsumer(queue) ... this returns a JMSConsumer
            String messageReceived = jmsContext.createConsumer(queue).receiveBody(String.class);
 
            System.out.println("Message is: "+ messageReceived);
