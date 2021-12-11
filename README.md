@@ -258,7 +258,11 @@ connectionFactory.ConnectionFactory=tcp://localhost:61616
 # a queue resource
 queue.queue/myQueue=myQueue
 ```
-I think that when we will initialize the `InitialContext` in our code, we will get such object from the factory class we have specified in property `java.naming.factory.initial`. And this factory class is specific to the JMS vendor we are using.
+When we create an instance of InitialContext with
+```java
+initialContext = new InitialContext();
+```
+it will automatically use the information defined in the application.properties file. I think we will get the `InitialContext` from the factory class we have specified in property `java.naming.factory.initial`. And this factory class is specific to the JMS vendor we are using.
 
 In the queue name specification, the first "queue." indicates it is a queue type of administered object. There is no queue named "myQueue". It will be created dynamically at run time. However, I don't understand whether the JNDI name will be "queue/myQueue" (left member) or "myQueue" (right member). In the code we use "queue/myQueue" as argument to `lookup()` anyway, buh.
 
@@ -270,12 +274,9 @@ defines a resource of type "connectionFactory" with name "ConnectionFactory" and
 
 **---->** For the case of the queue, the teacher said it is created by the JMS provider the first time we `lookup()` for it in our code. May be the Connection Factory is also created the first time we lookup for it, buh.
 
-When we create an instance of InitialContext with
-```java
-initialContext = new InitialContext();
-```
-it will automatically use the information defined in the application.properties file.  
+Each call to `consumer.receive()` will consume a message from the queue and will delete it. messages are consumed in order, in a first-in first-out fashion. We can call several times to `.receive()` to consume each message in the queue in order. 
 
+Notice that a call to `receive()` is blocking. In other words, the program will stop until this method gets a message from the queue. If there are no messages in the queue, it will wait for one forever, I think, if we don't specify a timeout. If after the timeout no message has been retrieved from the queue (no messages have arrived while we were waiting), the method will return with `null`.  
 
 ## Sending and receiving messages from a Topic
 Sending and receiving messages form a Topic follows the same pattern as for a Queue:
@@ -289,9 +290,138 @@ Sending and receiving messages form a Topic follows the same pattern as for a Qu
 8. receive the TextMessage with the consumers invoking `.receive()`
 
 Notice that consumers will only receive messages sent to the topic after they have subscribed.
+Here is the example code
+```java
+public class FirstTopic {
 
+    public static void main (String[] args) throws NamingException, JMSException {
+
+        InitialContext initialContext = initialContext = new InitialContext();
+        Topic topic = (Topic) initialContext.lookup("topic/myTopic");
+        ConnectionFactory connectionFactory = (ConnectionFactory) initialContext.lookup("ConnectionFactory");
+
+        Connection connection = connectionFactory.createConnection();
+        Session session = connection.createSession();
+
+        MessageProducer producer = session.createProducer(topic);
+
+        // This is how we subscribe a consumer to the topic
+        // Consumers will only receive messages sent to the topic after they subscribed
+        MessageConsumer consumer1 = session.createConsumer(topic);
+        MessageConsumer consumer2 = session.createConsumer(topic);
+
+        TextMessage message = session.createTextMessage("All the power is within me. I can do anything and everything.");
+        producer.send(message);
+
+        // tell the JMS provider that the consumer are ready to receive messages.
+        connection.start();
+
+        TextMessage message1 = (TextMessage) consumer1.receive();
+        System.out.println("Consumer 1 message received: "+ message1.getText());
+
+        TextMessage message2 = (TextMessage) consumer2.receive();
+        System.out.println("Consumer 2 message received: "+ message2.getText());
+
+        connection.close();
+        initialContext.close();
+
+    }
+}
+```
 Question: When all consumers subscribed to the queue have received a message, is that message removed from the queue?
 
+## Looping through the messages in Queue
+We can loop through the messages in a queue <u>without consuming them</u> (without removing them from the queue). For this, we use another object that can be obtained from the `Session` and the destination, like when we obtain a `MessageProducer` or a `MessageConsumer`. It is called `QueueBrowser`:
+
+```java
+
+/**
+ * JMS 1.1 example. All the boilerplate code is removed with JMS 2.0
+ */
+public class QueueBrowserDemo {
+    public static void main(String[] args) {
+
+        InitialContext initialContext = null;
+        Connection connection = null;
+        try {
+
+            // obtain a reference to the root of the JNDI tree of the naming server
+            // of the JMS server
+            initialContext = new InitialContext();
+
+            Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+            ConnectionFactory connectionFactory = (ConnectionFactory) initialContext.lookup("ConnectionFactory");
+
+            connection = connectionFactory.createConnection();
+            Session session = connection.createSession();
+
+            MessageProducer producer = session.createProducer(queue);
+            MessageConsumer consumer = session.createConsumer(queue);
+
+            TextMessage message1 = session.createTextMessage("Message 1");
+            TextMessage message2 = session.createTextMessage("Message 2");
+
+            producer.send(message1);
+            producer.send(message2);
+
+            QueueBrowser browser = session.createBrowser(queue);
+            Enumeration messageEnum = browser.getEnumeration();
+
+            // show the messages currently in the queue
+            System.out.println("Messages in the queue are:");
+            while (messageEnum.hasMoreElements()) {
+                TextMessage message = (TextMessage) messageEnum.nextElement();
+                System.out.println("Browsing: "+ message.getText());
+            }
+
+
+            /** Now we'll consume the messages  */
+
+            // start the flow of messages in the queue towards the consumers.
+            // tell the JMS provider we are ready to consume the messages
+            connection.start();
+
+            // here we block. This is synchronous.
+            // throw exception if message is not received after 5 seconds
+            System.out.println("Consuming messages in the queue: ");
+            TextMessage messageReceived = (TextMessage) consumer.receive(5000);
+            System.out.println("Message received: " + messageReceived.getText());
+
+            messageReceived = (TextMessage) consumer.receive(5000);
+            System.out.println("Message received: " + messageReceived.getText());
+
+        } catch (NamingException e) {
+            e.printStackTrace();
+        } catch (JMSException e) {
+            e.printStackTrace();
+        } finally {
+            if (initialContext != null) {
+                try {
+                    initialContext.close();
+                } catch (NamingException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (JMSException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+```
+This will print:
+```text
+Messages in the queue are:
+Browsing: Message 1
+Browsing: Message 2
+Consuming messages in the queue: 
+Message received: Message 1
+Message received: Message 2
+```
 
 _________
 # JNDI

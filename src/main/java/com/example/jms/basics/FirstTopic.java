@@ -38,6 +38,4 @@ public class FirstTopic {
         initialContext.close();
 
     }
-
-
 }
