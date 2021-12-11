@@ -20,23 +20,25 @@ public class FirstQueue {
             // of the JMS server
             initialContext = new InitialContext();
 
+            Queue queue = (Queue) initialContext.lookup("queue/myQueue");
             ConnectionFactory connectionFactory = (ConnectionFactory) initialContext.lookup("ConnectionFactory");
+
             connection = connectionFactory.createConnection();
             Session session = connection.createSession();
 
-            Queue queue = (Queue) initialContext.lookup("queue/myQueue");
             MessageProducer producer = session.createProducer(queue);
+            MessageConsumer consumer = session.createConsumer(queue);
 
             TextMessage message = session.createTextMessage("I am the creator of my destiny");
             producer.send(message);
 
-            System.out.println("Message sent: " + message);
+            System.out.println("Message sent: " + message.getText());
 
             /** Now we'll consume the messages  */
 
-            MessageConsumer consumer = session.createConsumer(queue);
-            connection.start(); // start the flow of messages in the queue to the consumers.
-                                //Tell the JMS provider we are ready to consume the messages
+            // start the flow of messages in the queue towards the consumers.
+            // tell the JMS provider we are ready to consume the messages
+            connection.start();
 
             // here we block. This is synchronous.
             // throw exception if message is not received after 5 seconds

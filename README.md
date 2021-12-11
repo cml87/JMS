@@ -252,7 +252,9 @@ connectionFactory.ConnectionFactory=tcp://localhost:61616
 # a queue resource
 queue.queue/myQueue=myQueue
 ```
-In the queue name specification, the first "queue." indicates it is a queue type of administered object. There is no queue named "myQueue". It will be created dynamically at run time.
+I think that when we will initialize the `InitialContext` in our code, we will get such object from the factory class we have specified in property `java.naming.factory.initial`. And this factory class is specific to the JMS vendor we are using.
+
+In the queue name specification, the first "queue." indicates it is a queue type of administered object. There is no queue named "myQueue". It will be created dynamically at run time. However, I don't understand whether the JNDI name will be "queue/myQueue" (left member) or "myQueue" (right member). In the code we use "queue/myQueue" as argument to `lookup()` anyway, buh.
 
 These are properties that the ArtemisMQ JMS broker host needs to setup a JNDI tree. I'm not sure whether these properties will just be that, properties to be loaded by our application, or will also create bindings and resources in the JMS server. But I think it defines bindings with the names and types we specify. For example, the line:
 ```text
@@ -270,8 +272,10 @@ it will automatically use the information defined in the application.properties 
 
 
 ## Sending and receiving messages from a Topic
+Sending
 
 
+When all consumers subscribed to the queue have received a message, is that message removed from the queue?
 
 
 _________
