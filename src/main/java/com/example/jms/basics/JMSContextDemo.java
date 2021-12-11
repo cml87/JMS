@@ -19,7 +19,7 @@ public class JMSContextDemo {
        InitialContext initialContext = new InitialContext();
        Queue queue = (Queue) initialContext.lookup("queue/myQueue");
 
-       // JMSContext will have the ConnectionFactory and the Session
+       // JMSContext will have the Connection and the Session
        // I think this is either using defaults or properties from jndi.properties file
        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
                 JMSContext jmsContext = cf.createContext()) {

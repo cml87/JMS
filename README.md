@@ -458,7 +458,7 @@ public class JMSContextDemo {
        InitialContext initialContext = new InitialContext();
        Queue queue = (Queue) initialContext.lookup("queue/myQueue");
 
-        // JMSContext will have the ConnectionFactory and the Session
+        // JMSContext will have the Connection and the Session
        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
                 JMSContext jmsContext = cf.createContext()) {
 
@@ -502,7 +502,58 @@ The properties JMSXGroupID and JMSXGroupSeq are used when we work with groups of
 Messages can be filtered by both its headers and its properties.
 
 ## Message priority
-The priority of the messages present in a queue affect the order in which they are received when we call `receive()` in a consumer.
+The priority of the messages present in a queue affect the order in which they are received when we call `receive()` in a consumer. Messages with higher priority will be received first. Instead of setting the priority to the message itself, we set the priority to the producer with which we'll send it. Once a producer has been set with a priority, all messages sent with it will have that priority in the queue. Here is an example:
+```java
+public class MessagePriority {
+   public static void main(String[] args) throws NamingException {
+
+       // get the reference to the root context of the JNDI tree
+       // This will read the properties file
+       InitialContext initialContext = new InitialContext();
+       Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+
+       // JMSContext will have the ConnectionFactory and the Session
+       // I think this is either using defaults or properties from jndi.properties file
+       try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+                JMSContext jmsContext = cf.createContext()) {
+
+            String[] messages = {"Message One", "Message Two", "Message Three"};
+
+           JMSProducer producer = jmsContext.createProducer();
+
+           producer.setPriority(3);
+           producer.send(queue, messages[0]);
+
+           producer.setPriority(1);
+           producer.send(queue, messages[1]);
+
+           producer.setPriority(9);
+           producer.send(queue, messages[2]);
+
+           JMSConsumer consumer = jmsContext.createConsumer(queue);
+
+           for (int i = 0; i < 3; i++ ){
+               Message receivedMessage = consumer.receive();
+               int messagePriority = receivedMessage.getJMSPriority();
+               String messageBody = receivedMessage.getBody(String.class);
+
+               System.out.printf("Message priority: %d, Message body: %s\n", messagePriority, messageBody);
+               //System.out.println(consumer.receiveBody(String.class));
+           }
+       } catch (JMSException e) {
+           e.printStackTrace();
+       }
+   }
+}
+```
+Notice how we retrieve the priority of the message with `getJMSPriority()` which return the value in this header.
+
+If we don't set a priority for the messages in the producer, a default priority value will be set for them, say 4. In this case the messages will be retrieved by a consumer in the order they were received by the JMS provider.
+
+
+
+
+
 
 _________
 # JNDI
