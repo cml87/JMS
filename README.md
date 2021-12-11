@@ -181,7 +181,8 @@ The javax and Spring dependencies are not strictly needed, but I include them be
 
 Our main class can be: 
 ```java
- /**
+
+/**
  *  JMS 1.1 example. All the boilerplate code is removed with JMS 2.0
  *  */
 public class FirstQueue {
@@ -191,25 +192,30 @@ public class FirstQueue {
     Connection connection = null;
     try {
 
-      // obtain a reference to the root of the JNDI tree of the naming server 
+      // obtain a reference to the root of the JNDI tree of the naming server
       // of the JMS server
       initialContext = new InitialContext();
 
+      // get the resources in the JNDI tree we need
+      Queue queue = (Queue) initialContext.lookup("queue/myQueue");
       ConnectionFactory connectionFactory = (ConnectionFactory) initialContext.lookup("ConnectionFactory");
+
       connection = connectionFactory.createConnection();
       Session session = connection.createSession();
 
-      Queue queue = (Queue) initialContext.lookup("queue/myQueue");
       MessageProducer producer = session.createProducer(queue);
+      MessageConsumer consumer = session.createConsumer(queue);
 
       TextMessage message = session.createTextMessage("I am the creator of my destiny");
       producer.send(message);
 
-      System.out.println("Message sent: " + message);
+      System.out.println("Message sent: " + message.getText());
 
-      MessageConsumer consumer = session.createConsumer(queue);
-      connection.start(); // start the flow of messages in the queue to the consumers.
-      //Tell the JMS provider we are ready to consume the messages
+      /** Now we'll consume the messages  */
+
+      // start the flow of messages in the queue towards the consumers.
+      // tell the JMS provider we are ready to consume the messages
+      connection.start();
 
       // here we block. This is synchronous.
       // throw exception if message is not received after 5 seconds
@@ -272,10 +278,19 @@ it will automatically use the information defined in the application.properties 
 
 
 ## Sending and receiving messages from a Topic
-Sending
+Sending and receiving messages form a Topic follows the same pattern as for a Queue:
+1. Obtain the reference to the `InitialContext`.
+2. Retrieve the Topic or Queue resource, as well as the ConnectionFactory resource, invoking with `lookup()` from the initial context and the resource names.
+3. Create a Session from the Connection
+4. Create MessageProducer and MessageConsumer from the Session and passing the destination queue or topic
+5. Create a TextMessage from the Session.
+6. Send the TextMessage with the producer
+7. start the connection, so the consumers can receive messages from the queues
+8. receive the TextMessage with the consumers invoking `.receive()`
 
+Notice that consumers will only receive messages sent to the topic after they have subscribed.
 
-When all consumers subscribed to the queue have received a message, is that message removed from the queue?
+Question: When all consumers subscribed to the queue have received a message, is that message removed from the queue?
 
 
 _________
