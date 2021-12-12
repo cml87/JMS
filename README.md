@@ -798,7 +798,39 @@ public class MessageDelayDemo {
 ```
 
 ## Custom message properties
+Custom message properties can be set in the message or in the producer. Properties can then be retrieved in the consumer side, from the message. We can set a property of any primitive type, or even of Object type, which determines which setter and getter method we use for the property. When we set a property, we must specify a name for it, other than a (proper type) value. For example:
+```java
+public class MessagePropertiesDemo {
+   public static void main(String[] args) throws NamingException, InterruptedException, JMSException {
 
+       // get the reference to the root context of the JNDI tree
+       // This will read the properties file
+       InitialContext initialContext = new InitialContext();
+       Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+
+       Queue expiryQueue = (Queue) initialContext.lookup("queue/expiryQueue");
+
+       // JMSContext will have the Connection and the Session
+       // I think this is either using defaults or properties from jndi.properties file
+       try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+                JMSContext jmsContext = cf.createContext()) {
+
+           JMSProducer producer = jmsContext.createProducer();
+           TextMessage message = jmsContext.createTextMessage("Arise awake and stop not till the goal is reached");
+           message.setBooleanProperty("loggedIn", true);
+           message.setStringProperty("userToken", "abc123");
+           producer.send(queue, message);
+
+           // we'll get the message after three seconds
+           TextMessage messageReceived = (TextMessage) jmsContext.createConsumer(queue).receive();
+           System.out.println(messageReceived);
+           System.out.println(messageReceived.getBooleanProperty("loggedIn"));
+           System.out.println(messageReceived.getStringProperty("userToken"));
+
+       }
+   }
+}
+```
 
 
 
