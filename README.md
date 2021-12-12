@@ -426,9 +426,9 @@ Message received: Message 2
 ```
 
 ## JMS 2.0 introduced in Java EE 7
-JMS 2.0 makes it very easy to send messages to a queue. It shortens the steps we saw before. JMS 2.0 provides a new class that is the combination of a Connection and a Session, it is a `JMSContext`. From this class we can create then the a `JMSProducer` and a `JMSConsumer`, with which we can send and receive a message in a single line of code. All `JMSContext`, `JMSProducer` and `JMSConsumer` implement `java.lang.AutoClosable` so we will not need to close them explicitly, provided we use them inside a try/catch block. Moreover,`JMSProducer` and `JMSConsumer` give us easy access to a message's Headers, Properties and Body. 
+JMS 2.0 makes it much easier to send and receive messages. It shortens the steps we saw before. JMS 2.0 provides a new class that is the combination of a Connection and a Session, `JMSContext`, from which  create producer and consumer objects `JMSProducer` and a `JMSConsumer`. All `JMSContext`, `JMSProducer` and `JMSConsumer` implement `java.lang.AutoClosable`, so we will not need to close them explicitly, provided we use them inside a try/catch block. Moreover,`JMSProducer` and `JMSConsumer` give us easy access to a message's Headers, Properties and Body. 
 
-JMS 2.0 in Java EE 7 compatible application server allows injecting the Connection Factory and destination resources easily into our code as:
+JMS 2.0 in Java EE 7 compatible application servers allows injecting the Connection Factory and destination resources easily into our code as:
 ```java
 @Inject
 @JMSConnectionFactory("jms/connectionFactory") private JMSContext context;
@@ -443,7 +443,7 @@ I think the line
 ```java
 ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
 ```
-will use default info or info defined in the jndi.propeties file.
+will use default info, or info defined in the `jndi.properties` file.
 
 With JMS 2.0 it is also possible to make our own customized connection factory. So far we have been using the default connection factory provided by the JMS vendor. This is done through the annotations `@JMSConnectionFactoryDefinitions` and `JMSConnectioFactoryDefinition`, or through xml configuration `<jms-connection-factory>`.
 
@@ -471,6 +471,16 @@ public class JMSContextDemo {
    }
 }
 ```
+Notice that a producer `JMSProducer` is created from the context without specifying the destination to which we want to send messages later with it. The destination is specified when we can `send()` on the producer:
+```java
+JMSProducer producer = jmsContext.createProducer();
+producer.send(queue, "Arise awake and stop not till the goal is reached");
+```
+On the other hand, a consumer `JMSConsumer` do need the destination from which we'll consume messages with it after:
+```java
+JMSConsumer consumer = jmsContext.createConsumer(queue);
+String messageReceived = consumer.receiveBody(String.class);
+```
 
 ## JMS message
 
@@ -492,6 +502,15 @@ The message headers are metadata. There are provider-set headers and developer-s
 - JMSReplayTo: The producer application will set this header so that the consumer application know which destination it should replay back on, in a request/replay scenario.
 - JMSCorrelationID: also used in a request/replay scenario. The consumer application will set it with the JMSMessageId of the request message for which it is sending the response back. This way the producer application can relate the incoming response with the particular request it previously sent. So it is to "correlate" request with its response.
 - JMSType: set by the producer application. Used to convey what type of message is being sent
+
+Any Developer-set header can be set in the message itself, before sending it. It can also be set in the producer, for all messages sent with it. For example:
+```java
+JMSProducer producer = jmsContext.createProducer();
+//producer.setJMSReplyTo(replyQueue);
+TextMessage message = jmsContext.createTextMessage("Arise awake and stop not till the goal is reached");
+message.setJMSReplyTo(replyQueue);
+producer.send(requestQueue, message);
+```
 
 Properties are also divided into provider-set properties and developer-set properties. At the producer side, **developer-set** (or **application specific**) properties can be added to the message as key-value pair, with method `setXXXProperty`. XXX stands for a particular type, such as integer, boolean, string etc (primitives ?). At the consumer end we can then retrieve any property with `getXXXPropety`. 
 
@@ -550,10 +569,8 @@ Notice how we retrieve the priority of the message with `getJMSPriority()` which
 
 If we don't set a priority for the messages in the producer, a default priority value will be set for them, say 4. In this case the messages will be retrieved by a consumer in the order they were received by the JMS provider.
 
-## Request-replay messages
-A consumer application can send a message to queue, a _request_, from which the message is consumed after by a consumer application. The consumer application can then consume and process this message, sending another one to (another) queue which can be consumed by the producer, as a _replay_. In this scenario, method `replyTo()` and message headers `messageId` and `correlationID` are used. 
- 
-Here is an example:
+## Request-replay scenario
+A consumer application can send a message to queue, a _request_, from which the message is consumed after by a consumer application. The consumer application can then consume and process this message, sending another one to another queue, which can be consumed by the producer, as a _replay_. Here is an example:
 ```java
 public class RequestReplyDemo {
    public static void main(String[] args) throws NamingException {
@@ -592,9 +609,131 @@ public class RequestReplyDemo {
    }
 }
 ```
+When a producer sends a messages, it can specify in which queue it is expecting the reply to that message. However, the convention is to specify this information in through a header of the message being sent, `JMSReplayTo`. So the message itself can convey where we should send the reply to it. Here is how we do it:
+```java
+public class RequestReplyDemo {
+   public static void main(String[] args) throws NamingException {
+
+       // get the reference to the root context of the JNDI tree
+       // This will read the properties file
+       InitialContext initialContext = new InitialContext();
+       Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
+       Queue replyQueue = (Queue) initialContext.lookup("queue/replyQueue");
+
+       // JMSContext will have the Connection and the Session
+       // I think this is either using defaults or properties from jndi.properties file
+       try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+                JMSContext jmsContext = cf.createContext()) {
+
+           /* producer application */
+           JMSProducer producer = jmsContext.createProducer();
+           //producer.setJMSReplyTo(replyQueue);
+           TextMessage message = jmsContext.createTextMessage("Arise awake and stop not till the goal is reached");
+           
+           // set the JMSReplayTo header
+           message.setJMSReplyTo(replyQueue);
+           producer.send(requestQueue, message);
+
+           /* consumer application*/
+           JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
+           // consume the whole message so we can get also its metadata
+           TextMessage messageReceived = (TextMessage) consumer.receive();
+           System.out.println(messageReceived.getText());
+
+           JMSProducer replyProducer = jmsContext.createProducer();
+           replyProducer.send(messageReceived.getJMSReplyTo(), "You are awesome!!");
+
+           /***************************/
+
+           /* producer application */
+           JMSConsumer replyConsumer = jmsContext.createConsumer(messageReceived.getJMSReplyTo());
+           System.out.println(replyConsumer.receiveBody(String.class));
+
+       } catch (JMSException e) {
+           e.printStackTrace();
+       }
+   }
+}
+```
+The queue where a producer wants to receive a message can be a `TemporaryQueue`, which is a queue directly created from a context instead of being retrieved from the JNDI tree. "A `TemporaryQueue` object is a unique Queue object created for the duration of a Connection. It is a system-defined queue that can be consumed only by the Connection that created it." ??
+
+We create a temporary queue as:
+```java
+TemporaryQueue replyQueue = jmsContext.createTemporaryQueue();
+```
+When there are multiple application sending requests and replies, it may be useful to associate a particular request to a particular replay. This is where headers `messageId` and `correlationID` become useful. When we want to make clear to which request message a given reply message corresponds to, we set the `JMSCorrelationID` of the replay message equal to the `JMSMessageID` of the request message. Here is how we do it:
+
+```java
+public class RequestReplyDemo {
+   public static void main(String[] args) throws NamingException, JMSException {
+
+       // get the reference to the root context of the JNDI tree
+       // This will read the properties file
+       InitialContext initialContext = new InitialContext();
+       Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
+       //Queue replyQueue = (Queue) initialContext.lookup("queue/replyQueue");
+
+       // JMSContext will have the Connection and the Session
+       // I think this is either using defaults or properties from jndi.properties file
+       try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+            JMSContext jmsContext = cf.createContext()) {
+
+           /* producer application */
+           JMSProducer producer = jmsContext.createProducer();
+           //producer.setJMSReplyTo(replyQueue);
+           TextMessage message = jmsContext.createTextMessage("Arise awake and stop not till the goal is reached");
+           TemporaryQueue replyQueue = jmsContext.createTemporaryQueue();
+
+           message.setJMSReplyTo(replyQueue);
+           producer.send(requestQueue, message);
+           System.out.printf("Message sent by producer: [%s] %s\n", message.getJMSMessageID(), message.getText());
+
+           Map<String, TextMessage> requestMessages = new HashMap<>();
+           requestMessages.put(message.getJMSMessageID(), message);
+
+           /* consumer application*/
+           JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
+           TextMessage messageReceived = (TextMessage) consumer.receive();
+           System.out.printf("Message received by consumer: [%s] %s\n", messageReceived.getJMSMessageID(), messageReceived.getText());
+
+           JMSProducer replyProducer = jmsContext.createProducer();
+           TextMessage replyMessage = jmsContext.createTextMessage("You are awesome!!");
+           replyMessage.setJMSCorrelationID(messageReceived.getJMSMessageID());
+           replyProducer.send(messageReceived.getJMSReplyTo(), replyMessage);
+           System.out.printf("Reply message sent by producer: [correlation%s] %s\n", replyMessage.getJMSCorrelationID(), replyMessage.getText());
+
+           /***************************/
+
+           /* producer application */
+           JMSConsumer replyConsumer = jmsContext.createConsumer(messageReceived.getJMSReplyTo());
+           TextMessage replyReceived = (TextMessage) replyConsumer.receive();
+           System.out.printf("Reply message received by producer: [correlation%s] %s\n", replyReceived.getJMSCorrelationID(), replyReceived.getText());
+
+           System.out.printf("The reply corresponds to message: %s", requestMessages.get(replyReceived.getJMSCorrelationID()).getText());
+
+       }
+   }
+}
+```
+Notice that the correlationId of the consumed reply, in the producer side, will result equal to the correlationId we set in the reply message, in the consumer side, only if the replay queue is a `TemporaryQueue`, I don't know why ??? 
+
+Notice also how we can add sent messages in the producer side to a Map, using as key the messageID, and then retrieve them using as key the correlationId of the reply message. This is how we set the request-reply linkage.
 
 
- Notice that when we create a producer, we don't specify to which destination this producer will eventually send a message. On the other hand, when we create a consumer, we do specify from which destination it will eventually consume messages
+
+
+Header `JMSmessageID` is set automatically by the JMS provider when we send a message.
+
+
+
+
+
+
+
+
+
+
+
 
 
 
