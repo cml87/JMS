@@ -661,8 +661,7 @@ We create a temporary queue as:
 ```java
 TemporaryQueue replyQueue = jmsContext.createTemporaryQueue();
 ```
-When there are multiple application sending requests and replies, it may be useful to associate a particular request to a particular replay. This is where headers `messageId` and `correlationID` become useful. When we want to make clear to which request message a given reply message corresponds to, we set the `JMSCorrelationID` of the replay message equal to the `JMSMessageID` of the request message. Here is how we do it:
-
+When there are multiple application sending requests and replies, it may be useful to associate a particular request to a particular replay. This is where headers `messageId` and `correlationID` become useful. Header `JMSmessageID` is set automatically by the JMS provider when we send a message. When we want to make clear to which request message a given reply message corresponds to, we set the `JMSCorrelationID` of the replay message equal to the `JMSMessageID` of the request message. Here is how we do it:
 ```java
 public class RequestReplyDemo {
    public static void main(String[] args) throws NamingException, JMSException {
@@ -719,10 +718,52 @@ Notice that the correlationId of the consumed reply, in the producer side, will 
 
 Notice also how we can add sent messages in the producer side to a Map, using as key the messageID, and then retrieve them using as key the correlationId of the reply message. This is how we set the request-reply linkage.
 
+## Message expiration
+We can set an expiry time, or time-to-live, to a message with `setTimeToLive`.  If a message is not consumed before it is expired, it will be moved to an "expiry queue" automatically, disappearing from the queue we send it to. We set the timeToLive in the producer with which we'll send the message, not on the message itself.
+
+The expiry queue will be set automatically by the JMS provider. In the configuration file `broker.xml` it appears configured with name `ExpiryQueue`. From our code we can get the JNDI reference to it if we include in the `jndi.propeties`:
+```text
+queue.queue/expiryQueue=ExpiryQueue
+```
+Here is the example:
+```java
+public class MessageExpirationDemo {
+  public static void main(String[] args) throws NamingException, InterruptedException {
+
+    // get the reference to the root context of the JNDI tree
+    // This will read the properties file
+    InitialContext initialContext = new InitialContext();
+    Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+
+    Queue expiryQueue = (Queue) initialContext.lookup("queue/expiryQueue");
 
 
+    // JMSContext will have the Connection and the Session
+    // I think this is either using defaults or properties from jndi.properties file
+    try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+         JMSContext jmsContext = cf.createContext()) {
 
-Header `JMSmessageID` is set automatically by the JMS provider when we send a message.
+      JMSProducer producer = jmsContext.createProducer();
+      // the message will expire after 2 seconds
+      producer.setTimeToLive(2000);
+      TextMessage message = jmsContext.createTextMessage("Arise awake and stop not till the goal is reached");
+      producer.send(queue, message);
+
+      // we wait for three seconds, so we make the message expire
+      Thread.sleep(3000);
+
+      // wait for only one second, after which, if there is no message we'll get null back
+      TextMessage messageReceived = (TextMessage) jmsContext.createConsumer(queue).receive(1000);
+      System.out.println(messageReceived); // null
+
+      System.out.println("Printing messages in the ExpiryQueue:");
+      System.out.println(jmsContext.createConsumer(expiryQueue).receiveBody(String.class));
+      // Arise awake and stop not till the goal is reached
+    }
+  }
+}
+```
+
 
 
 
