@@ -832,8 +832,43 @@ public class MessagePropertiesDemo {
 }
 ```
 
+## Types of messages
+We can use 5 different types of messages when working with JMS. They all implement the <u>`Message` interface</u>:
+1. TextMessage: Used to send text data as Strings
+2. ByteMessage: Bytes, binary level 
+3. ObjectMessage: send an object that can be (de)serialized.
+4. StreamMessage: Stream Java objects and wrap primitive types? The consumer must read the stream in the same order it was written by the producer ?
+5. MapMessage: A set of key-value pairs
 
+### Byte message
+This is how we can send and receive a bytes message:
+```java
+public class MessageTypesDemo {
+   public static void main(String[] args) throws NamingException, InterruptedException, JMSException {
 
+       // get the reference to the root context of the JNDI tree
+       // This will read the properties file
+       InitialContext initialContext = new InitialContext();
+       Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+
+       // JMSContext will have the Connection and the Session
+       // I think this is either using defaults or properties from jndi.properties file
+       try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+                JMSContext jmsContext = cf.createContext()) {
+
+           JMSProducer producer = jmsContext.createProducer();
+           BytesMessage bytesMessage = jmsContext.createBytesMessage();
+           bytesMessage.writeUTF("John"); // first payload ?
+           bytesMessage.writeLong(123l);  // second payload ?
+           producer.send(queue, bytesMessage);
+
+           BytesMessage messageReceived = (BytesMessage) jmsContext.createConsumer(queue).receive();
+           System.out.println(messageReceived.readUTF());
+           System.out.println(messageReceived.readLong());
+       }
+   }
+}
+```
 
 
 
