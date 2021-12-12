@@ -870,6 +870,65 @@ public class MessageTypesDemo {
 }
 ```
 
+A stream message works exactly in the same way ???:
+```java
+public class MessageTypesDemo {
+   public static void main(String[] args) throws NamingException, InterruptedException, JMSException {
+
+       // get the reference to the root context of the JNDI tree
+       // This will read the properties file
+       InitialContext initialContext = new InitialContext();
+       Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+
+       // JMSContext will have the Connection and the Session
+       // I think this is either using defaults or properties from jndi.properties file
+       try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+                JMSContext jmsContext = cf.createContext()) {
+
+           JMSProducer producer = jmsContext.createProducer();
+           StreamMessage streamMessage = jmsContext.createStreamMessage();
+           streamMessage.writeBoolean(true); // first payload ?
+           streamMessage.writeFloat(2.5f);  // second payload ?
+           producer.send(queue, streamMessage);
+
+           StreamMessage messageReceived = (StreamMessage) jmsContext.createConsumer(queue).receive();
+           System.out.println(messageReceived.readBoolean());
+           System.out.println(messageReceived.readFloat());
+       }
+   }
+}
+```
+
+Map messages carry keys and values. To set the payload, or write values to a map message, we use setter methods passing name and value pairs. For example:
+```java
+public class MessageTypesDemo {
+   public static void main(String[] args) throws NamingException, InterruptedException, JMSException {
+
+       // get the reference to the root context of the JNDI tree
+       // This will read the properties file
+       InitialContext initialContext = new InitialContext();
+       Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+
+       // JMSContext will have the Connection and the Session
+       // I think this is either using defaults or properties from jndi.properties file
+       try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+                JMSContext jmsContext = cf.createContext()) {
+
+           JMSProducer producer = jmsContext.createProducer();
+
+           MapMessage mapMessage = jmsContext.createMapMessage();
+           mapMessage.setBoolean("isCreditAvailable", true);
+           producer.send(queue,mapMessage);
+
+           MapMessage messageReceived = (MapMessage) jmsContext.createConsumer(queue).receive();
+           System.out.println(messageReceived.getBoolean("isCreditAvailable"));
+
+       }
+   }
+}
+```
+
+
 
 
 

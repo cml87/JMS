@@ -6,6 +6,7 @@ import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import javax.jms.*;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import java.util.Map;
 
 /**
  *  JMS 2.0 example
@@ -24,14 +25,32 @@ public class MessageTypesDemo {
                 JMSContext jmsContext = cf.createContext()) {
 
            JMSProducer producer = jmsContext.createProducer();
+
            BytesMessage bytesMessage = jmsContext.createBytesMessage();
            bytesMessage.writeUTF("John"); // first payload ?
            bytesMessage.writeLong(123l);  // second payload ?
-           producer.send(queue, bytesMessage);
+           //producer.send(queue, bytesMessage);
 
-           BytesMessage messageReceived = (BytesMessage) jmsContext.createConsumer(queue).receive();
-           System.out.println(messageReceived.readUTF());
-           System.out.println(messageReceived.readLong());
+          // BytesMessage messageReceived = (BytesMessage) jmsContext.createConsumer(queue).receive();
+          // System.out.println(messageReceived.readUTF());
+          // System.out.println(messageReceived.readLong());
+
+           StreamMessage streamMessage = jmsContext.createStreamMessage();
+           streamMessage.writeBoolean(true); // first payload ?
+           streamMessage.writeFloat(2.5f);  // second payload ?
+//           producer.send(queue, streamMessage);
+//
+//           StreamMessage messageReceived = (StreamMessage) jmsContext.createConsumer(queue).receive();
+//           System.out.println(messageReceived.readBoolean());
+//           System.out.println(messageReceived.readFloat());
+
+           MapMessage mapMessage = jmsContext.createMapMessage();
+           mapMessage.setBoolean("isCreditAvailable", true);
+
+           producer.send(queue,mapMessage);
+           MapMessage messageReceived = (MapMessage) jmsContext.createConsumer(queue).receive();
+           System.out.println(messageReceived.getBoolean("isCreditAvailable"));
+
        }
    }
 }
