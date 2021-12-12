@@ -44,6 +44,7 @@ public class MessageTypesDemo {
 //           System.out.println(messageReceived.readBoolean());
 //           System.out.println(messageReceived.readFloat());
 
+
            MapMessage mapMessage = jmsContext.createMapMessage();
            mapMessage.setBoolean("isCreditAvailable", true);
 
