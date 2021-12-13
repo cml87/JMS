@@ -928,7 +928,7 @@ public class MessageTypesDemo {
 }
 ```
 ### Object message
-When and object implements interface `Serializable`, we can send it through a `ObjectMessage`. For example:
+When and object implements interface `Serializable`, we can send it through a `ObjectMessage`. We will create an `ObjectMessage` and `set` and `get` the object it carries when sending and receiving the message, respectively. For example:
 ```java
 
 public class Patient implements Serializable {
@@ -941,7 +941,36 @@ public class Patient implements Serializable {
     
 }
 ```
+```java
+public class MessageTypesDemo {
+    public static void main(String[] args) throws NamingException, InterruptedException, JMSException {
 
+        // get the reference to the root context of the JNDI tree
+        // This will read the properties file
+        InitialContext initialContext = new InitialContext();
+        Queue queue = (Queue) initialContext.lookup("queue/myQueue");
+
+        // JMSContext will have the Connection and the Session
+        // I think this is either using defaults or properties from jndi.properties file
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()) {
+
+            JMSProducer producer = jmsContext.createProducer();
+
+            Patient patient = new Patient(123, "John");
+            ObjectMessage objectMessage = jmsContext.createObjectMessage();
+
+            objectMessage.setObject(patient);
+            producer.send(queue, objectMessage);
+
+            ObjectMessage messageReceived = (ObjectMessage) jmsContext.createConsumer(queue).receive();
+            Patient patientReceived = (Patient) messageReceived.getObject();
+            System.out.println(patientReceived.toString());
+
+        }
+    }
+}
+```
 
 
 
