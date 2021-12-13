@@ -927,10 +927,20 @@ public class MessageTypesDemo {
    }
 }
 ```
-
 ### Object message
+When and object implements interface `Serializable`, we can send it through a `ObjectMessage`. For example:
+```java
 
+public class Patient implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    private int id;
+    private String name;
+
+    // getters and setters
+    
+}
+```
 
 
 
