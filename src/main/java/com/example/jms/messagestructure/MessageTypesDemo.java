@@ -54,6 +54,7 @@ public class MessageTypesDemo {
 
             objectMessage.setObject(patient);
             producer.send(queue, objectMessage);
+            producer.send
 
             //MapMessage messageReceived = (MapMessage) jmsContext.createConsumer(queue).receive();
             //System.out.println(messageReceived.getBoolean("isCreditAvailable"));

@@ -972,6 +972,8 @@ public class MessageTypesDemo {
 }
 ```
 
+## Sending Java types and objects directly
+Until now we have been creating different types of messages to be sent with `send()`: `TextMessage`, `ByteMessage`, `StreamMessage`, `MapMessage` and `ObjectMessage`. All these are actually types that implement interface `javax.jms.Message`, which is just one of the several types we can pass to `send()`, after the queue specification. Method `send()` has overloaded versions accepting types `String`, `byte[]`, `Map<>` and `Serializable` (an interface), other than `Message`, which is the only version we have been using so far. 
 
 
 
