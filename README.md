@@ -869,7 +869,7 @@ public class MessageTypesDemo {
    }
 }
 ```
-
+### Stream message
 A stream message works exactly in the same way ???:
 ```java
 public class MessageTypesDemo {
@@ -898,7 +898,7 @@ public class MessageTypesDemo {
    }
 }
 ```
-
+### Map message
 Map messages carry keys and values. To set the payload, or write values to a map message, we use setter methods passing name and value pairs. For example:
 ```java
 public class MessageTypesDemo {
@@ -928,6 +928,8 @@ public class MessageTypesDemo {
 }
 ```
 
+### Object message
+
 
 
 
@@ -946,7 +948,9 @@ Application Servers can host a set of ready-to-use Java objects that enterprise 
 
 **Java Naming and Directory Interface (JNDI)** is about registering and finding objects in distributed applications (enterprise applications deployed in one or many application servers, or standalone applications communicating with application servers or JNDI servers of some application). It is an API (a standard) that can be used for binding and accessing objects located in any Java EE or specialized _naming server_ that implement this standard API. Various software vendors (eg. JMS vendors) offer specialized "directory assistance software" that implement the JNDI API.
 
-Every Java EE application server comes with an administration console that allow you to manage (create?) objects in a _JNDI tree_. In the JNDI tree we publish and look up _administered objects_, which are objects configured by the server administrator. Examples of administered objects are database connection pool (Data Source) as well as connection factories and destinations (queues and topics) in JMS servers. Instead of objects, we can also publish any information that allows retrieving it somehow.
+Every Java EE application server comes with an administration console that allow you to manage (create?) objects in a _JNDI tree_. In the JNDI tree we publish and look up _administered objects_, which are objects configured by the server administrator. Examples of administered objects are database connection pool (Data Source) as well as connection factories and destinations (queues and topics) in JMS servers.
+
+Notice that instead of objects (or resources), we can also publish in the JNDI tree <u>references</u> to them, or any information that allows retrieving them somehow.
 
 ## Naming and Directory service
 A **_naming service_** enables you to add, change or delete names of objects that exist in some _naming hierarchy_, so other Java classes can look them up to find their location. For example, the directory of books in a library has the names of the physical locations of the books in the shelves, where we can go and get the books.
@@ -957,7 +961,7 @@ All objects in the JNDI tree will have a name by which we look them up. We can t
 
 Naming and directory services are said to be provided by naming and directory servers, respectively.
 
-To allow client code to do look ups in a JNDI, or naming, tree, there has to be a process that initially binds the objects to the naming tree. This can be handled via a server administration console, or from client code that binds names to a names, or directory, server, of some software that has one. 
+To allow client code to do look-ups in a JNDI, or naming, tree, there has to be a process that initially binds the objects to the naming tree. This can be handled via a server administration console, or from client code that binds names to a names, or directory, server, of some software that has one. 
 
 Java EE servers bind such objects as EJB, Servlets, JMS Connection Factories, and JDBC database connection pools to their naming servers during startup. They may have some of these bindings already predefined.
 
@@ -1024,15 +1028,15 @@ DataSource ds = (DataSource) initContext.lookup("java:comp/env/jdbc/DefaultDataS
 
 JNDI resources can be obtained by injection as well with `@Resource`.
 
-JNDI resources can also be references to other resources we create in the Java EE server. One example is a connections pool resource (type `javax.sql.DataSource`) in GlassFish. Here we first create the mentioned resource as a "JDBC Connection Pool" from the console, setting the necessary attributes Username, Password, ServerName, Port and DatabaseName. After we create a JNDI resource, specifically a "JDBC Resource", with a given "JNDI name" and associate it with the just created pool of connections. From our code we can then access this resource which points to a pool of connections as:
+As mentioned before, JNDI resources can also be references to other resources we create in the Java EE server. One example is a connections pool resource (type `javax.sql.DataSource`) in GlassFish. Here we first create the mentioned resource as a "JDBC Connection Pool" from the console, setting the necessary attributes Username, Password, ServerName, Port and DatabaseName. After, we create a JNDI resource, specifically a "JDBC Resource", with a given "JNDI name" and associate it with the just created pool of connections. This JNDI resource will be a reference to that pool of connections (object of type `DataSource`). From our code we can then access this resource which points to a pool of connections as:
 ```java
 import javax.annotation.Resource;
 import javax.sql.DataSource;
 
 public class InfoResource {
 
-  @Resource(lookup = "jdbc/utenti") // this is the JNDI name associated 
-                                // with a pool name in the GlassFish console
+  @Resource(lookup = "jdbc/utenti") // this is the JNDI name "associated" with, or 
+                                // referencing a, pool of connections in the GlassFish console
   DataSource dataSource;
 
   // ...
