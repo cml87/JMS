@@ -973,10 +973,34 @@ public class MessageTypesDemo {
 ```
 
 ## Sending Java types and objects directly
-Until now we have been creating different types of messages to be sent with `send()`: `TextMessage`, `ByteMessage`, `StreamMessage`, `MapMessage` and `ObjectMessage`. All these are actually types that implement interface `javax.jms.Message`, which is just one of the several types we can pass to `send()`, after the queue specification. Method `send()` has overloaded versions accepting types `String`, `byte[]`, `Map<>` and `Serializable` (an interface), other than `Message`, which is the only version we have been using so far. 
+Until now, we have been creating different types of messages to be sent with `send()`: `TextMessage`, `ByteMessage`, `StreamMessage`, `MapMessage` and `ObjectMessage`. All these are actually types that implement the interface `javax.jms.Message`. This is just one of the several types we can pass to `send()`, after the queue specification. Method `send()` has overloaded versions accepting types `String`, `byte[]`, `Map<>` and `Serializable` (an interface), other than `Message`. When we send one of these other types, the type will be set in the body of the message, so we'll be able to retrieve it with `receiveBody()`, invoking from a consumer and specifying the body type. For example, let's send and receive the type `Patient` just seen, which implements `Serializable`:
+```java
+public class MessageTypesDemo {
+    public static void main(String[] args) throws NamingException, InterruptedException, JMSException {
 
+        // get the reference to the root context of the JNDI tree
+        // This will read the properties file
+        InitialContext initialContext = new InitialContext();
+        Queue queue = (Queue) initialContext.lookup("queue/myQueue");
 
+        // JMSContext will have the Connection and the Session
+        // I think this is either using defaults or properties from jndi.properties file
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()) {
 
+            JMSProducer producer = jmsContext.createProducer();
+
+            Patient patient = new Patient(123, "John");
+            producer.send(queue, patient);
+
+            Patient patientReceived = jmsContext.createConsumer(queue).receiveBody(Patient.class);
+            System.out.println(patientReceived.toString());
+
+        }
+    }
+}
+```
+However, if we want to set headers or properties, we do need to create and send a type implementing `Message`, because we cannot directly set these in the object we are sending. In this case would use the setters methods such as `setText()`, for a `TextMessage`, or `setObject()`, for an `ObjectMessage`, to set the payload of the message before sending it.
 
 
 
