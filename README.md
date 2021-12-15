@@ -1012,7 +1012,12 @@ P2P communication is used in the fallowing cases:
 ## Asynchronous processing of messages. Listener and `onMessage()`
 The operation of reading a message with a consumer using method `receive()` is a blocking operation. If there are no messages in the queue the consumer will simply block waiting for one, without doing any other job. This is **synchronous processing**.
 
-The JMS api allows for **asynchronous processing** though, through interface `MessageListener`. This interface has a method `onMessage(Message m)`. A "consumer", or "listener", class implementing this interface, will override this method specifying the action to be taken when a message arrive to the _listened_ queue. This class needs to be registered with the JMS provider in the consumer side code. In this way, the JMS provider will invoke its method `onMessages()` whenever a message arrive to the listened queue, and will pass it that message as argument. 
+The JMS api allows for **asynchronous processing** though, through interface `MessageListener`. This interface has a method `onMessage(Message m)`. A "consumer", or "listener", class implementing this interface, will override this method specifying the action to be taken when a message arrive to the _listened_ queue. This class needs to be registered with the JMS provider in the consumer side code, passing it to a consumer. For example, if `EligibilityCheckListener` is the consumer class we do this with:
+```java
+consumer.setMessageListener(new EligibilityCheckListener());
+```
+
+In this way, the JMS provider will invoke its method `onMessages()` whenever a message arrive to the listened queue, and will pass it that message as argument. 
 
 
 
