@@ -7,7 +7,7 @@ import javax.jms.*;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
-public class EligibilityCheckApp {
+public class EligibilityCheckerApp {
 
     public static void main(String[] args) throws NamingException, JMSException, InterruptedException {
 
@@ -23,11 +23,7 @@ public class EligibilityCheckApp {
             consumer.setMessageListener(new EligibilityCheckListener());
 
             Thread.sleep(10000);
-
         }
-
         System.out.println("Listener app finished");
-
     }
-
 }

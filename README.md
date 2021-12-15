@@ -1012,15 +1012,130 @@ P2P communication is used in the fallowing cases:
 ## Asynchronous processing of messages. Listener and `onMessage()`
 The operation of reading a message with a consumer using method `receive()` is a blocking operation. If there are no messages in the queue the consumer will simply block waiting for one, without doing any other job. This is **synchronous processing**.
 
-The JMS api allows for **asynchronous processing** though, through interface `MessageListener`. This interface has a method `onMessage(Message m)`. A "consumer", or "listener", class implementing this interface, will override this method specifying the action to be taken when a message arrive to the _listened_ queue. This class needs to be registered with the JMS provider in the consumer side code, passing it to a consumer. For example, if `EligibilityCheckListener` is the consumer class we do this with:
+The JMS api allows for **asynchronous processing** though, through interface `MessageListener`. This interface has a method `onMessage(Message m)`. A "consumer", or "listener", class implementing this interface, will override this method specifying the action to be taken when a message arrive to the _listened_ queue. This class needs to be registered with the JMS provider in the consumer side code, passing it to a consumer. For example, if `EligibilityCheckListener` is the consumer class, we do this with:
 ```java
 consumer.setMessageListener(new EligibilityCheckListener());
 ```
-
 In this way, the JMS provider will invoke its method `onMessages()` whenever a message arrive to the listened queue, and will pass it that message as argument. 
 
+In the example below the producer application is `ClinicalsApp`, and the consumer application is `EligibilityCheckerApp`. Both these classes have a `main()` method, that's why they are separate "applications". The producer application will send a request (a message) through a `requestQueue`, from where the consumer application will read it, by means of a listener class `EligibilityCheckListener`. After processing the request in method `EligibilityCheckListener.onMessage()`, the consumer application will generate a response (another message) and will send it to a `replyQueue`. The later will be then read by the consumer application to fetch the response, making the application end. The first part of the communication (producer -> consumer) is asynchronous, since the producer application will send the request to a queue that is "listened by" the consumer application. The second part of the communication (consumer -> producer) is synchronous though, since the producer will read the response message from the `replyQueue` with method `receive()`.
 
+```java
+// producer application
+public class ClinicalsApp {
 
+    public static void main(String[] args) throws NamingException, JMSException {
+
+        InitialContext initialContext = new InitialContext();
+        Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
+        Queue replyQueue = (Queue) initialContext.lookup("queue/replyQueue");
+
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()){
+
+            Patient patient = new Patient(123, "Bob");
+            patient.setInsuranceProvider("Blue Cross Blue Shield");
+            patient.setCopay(100d);
+            patient.setAmountToBePayed(500d);
+
+            JMSProducer producer = jmsContext.createProducer();
+            ObjectMessage objectMessage = jmsContext.createObjectMessage();
+            objectMessage.setObject(patient);
+
+            producer.send(requestQueue, patient);
+
+            JMSConsumer consumer = jmsContext.createConsumer(replyQueue);
+            MapMessage replyMessage = (MapMessage) consumer.receive(30000);
+
+            System.out.println("patient eligibility is: "+ replyMessage.getBoolean("eligible"));
+
+        }
+    }
+}
+```
+```java
+// consumer application
+public class EligibilityCheckerApp {
+
+  public static void main(String[] args) throws NamingException, JMSException, InterruptedException {
+
+    System.out.println("Listener app started ...");
+
+    InitialContext initialContext = new InitialContext();
+    Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
+
+    try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+         JMSContext jmsContext = cf.createContext()){
+
+      JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
+      consumer.setMessageListener(new EligibilityCheckListener());
+
+      Thread.sleep(10000);
+    }
+    System.out.println("Listener app finished");
+  }
+}
+```
+```java
+// listener class of the consumer application
+public class EligibilityCheckListener implements MessageListener {
+
+    @Override
+    public void onMessage(Message message) {
+
+        ObjectMessage objectMessage = (ObjectMessage) message;
+
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()) {
+
+            InitialContext initialContext = new InitialContext();
+            Queue replyQueue = (Queue) initialContext.lookup("queue/replyQueue");
+
+            // We'll reply to this queue
+            MapMessage replyMessage = jmsContext.createMapMessage();
+
+            // Business logic. Processing of the incoming message
+            Patient patient = (Patient) objectMessage.getObject();
+            System.out.println("received Patient: " + patient.toString());
+            String insuranceProvider = patient.getInsuranceProvider();
+            if (insuranceProvider.equals("Blue Cross Blue Shield") || insuranceProvider.equals("United Health")){
+                System.out.println("Patient copay is: "+ patient.getCopay());
+                System.out.println("Patient amount to be paid: "+ patient.getAmountToBePayed());
+                if (patient.getCopay()<40 && patient.getAmountToBePayed()<1000){
+                    System.out.println("a");
+                    replyMessage.setBoolean("eligible", true);
+                } else {
+                    replyMessage.setBoolean("eligible", false);
+                }
+            } else {
+                replyMessage.setBoolean("eligible", false);
+            }
+
+            // Replay creation
+            JMSProducer producer = jmsContext.createProducer();
+            producer.send(replyQueue, replyMessage);
+
+        } catch (JMSException e) {
+            e.printStackTrace();
+        } catch (NamingException e) {
+            e.printStackTrace();
+        }
+
+    }
+}
+```
+Notice that we need to keep the consumer application up for enough time for the producer application to produce and send a message to it. That's why the consumer applications has the command `Thread.sleep(10000);`. To test this example we first need to start the application setting the listening of the `requesQueue`, ie. the consumer application `EligibilityCheckerApp`, and then the producer application. The producer `ClinicalsApp` application will print out:
+```text
+patient eligibility is: false
+```
+whereas the consumer application `EligibilityCheckerApp` will print out:
+```text
+Listener app started ...
+received Patient: Patient{id=123, name='Bob', insuranceProvider='Blue Cross Blue Shield', copay=100.0, amountToBePayed=500.0}
+Patient copay is: 100.0
+Patient amount to be paid: 500.0
+Listener app finished
+```
 
 
 
