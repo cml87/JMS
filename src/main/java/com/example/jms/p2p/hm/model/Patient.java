@@ -59,4 +59,15 @@ public class Patient implements Serializable {
     public void setAmountToBePayed(Double amountToBePayed) {
         this.amountToBePayed = amountToBePayed;
     }
+
+    @Override
+    public String toString() {
+        return "Patient{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", insuranceProvider='" + insuranceProvider + '\'' +
+                ", copay=" + copay +
+                ", amountToBePayed=" + amountToBePayed +
+                '}';
+    }
 }

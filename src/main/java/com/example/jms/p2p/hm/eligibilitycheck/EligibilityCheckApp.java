@@ -1,7 +1,6 @@
 package com.example.jms.p2p.hm.eligibilitycheck;
 
 import com.example.jms.p2p.hm.eligibilitycheck.listeners.EligibilityCheckListener;
-import com.example.jms.p2p.hm.model.Patient;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 
 import javax.jms.*;
@@ -10,7 +9,9 @@ import javax.naming.NamingException;
 
 public class EligibilityCheckApp {
 
-    public static void main(String[] args) throws NamingException, JMSException {
+    public static void main(String[] args) throws NamingException, JMSException, InterruptedException {
+
+        System.out.println("Listener app started ...");
 
         InitialContext initialContext = new InitialContext();
         Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
@@ -21,15 +22,12 @@ public class EligibilityCheckApp {
             JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
             consumer.setMessageListener(new EligibilityCheckListener());
 
+            Thread.sleep(10000);
 
         }
 
+        System.out.println("Listener app finished");
 
     }
-
-
-
-
-
 
 }
