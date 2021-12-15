@@ -972,7 +972,7 @@ public class MessageTypesDemo {
 }
 ```
 
-## Sending Java types and objects directly
+### Sending Java types and objects directly
 Until now, we have been creating different types of messages to be sent with `send()`: `TextMessage`, `ByteMessage`, `StreamMessage`, `MapMessage` and `ObjectMessage`. All these are actually types that implement the interface `javax.jms.Message`. This is just one of the several types we can pass to `send()`, after the queue specification. Method `send()` has overloaded versions accepting types `String`, `byte[]`, `Map<>` and `Serializable` (an interface), other than `Message`. When we send one of these other types, the type will be set in the body of the message, so we'll be able to retrieve it with `receiveBody()`, invoking from a consumer and specifying the body type. For example, let's send and receive the type `Patient` just seen, which implements `Serializable`:
 ```java
 public class MessageTypesDemo {
@@ -1001,6 +1001,29 @@ public class MessageTypesDemo {
 }
 ```
 However, if we want to set headers or properties, we do need to create and send a type implementing `Message`, because we cannot directly set these in the object we are sending. In this case would use the setters methods such as `setText()`, for a `TextMessage`, or `setObject()`, for an `ObjectMessage`, to set the payload of the message before sending it.
+
+## Point-to-Point messages (P2P)
+P2P communication is used in the fallowing cases:
+1. One to one communication with a request/response scenario. The request will be sent by the asker, through a queue, to the responder. The responder will respond through another queue, from which the response will read by the asker. Once read, the response will be deleted. The key is that the <u>response is needed only once</u>, so once it is read by the asker, no other application can read it.
+2. Interoperability among application built and/or running in different platforms. Decoupling.
+3. Throughout/Performance. An application can receive its inputs, or requests through a queue. When the load increases, we can either increase the number of threads, or instances, of the application listening the same queue, or we can increase the number of queues, each listened by a new copy of the application. 
+4. Possibility of browsing, or looping through, the messages in the queue without consuming (deleting) them, as this cannot be done with PUB/SUB messaging. Class `QueueBrowser`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
