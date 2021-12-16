@@ -1045,6 +1045,7 @@ public class ClinicalsApp {
             producer.send(requestQueue, patient);
 
             JMSConsumer consumer = jmsContext.createConsumer(replyQueue);
+            // here we block
             MapMessage replyMessage = (MapMessage) consumer.receive(30000);
 
             System.out.println("patient eligibility is: "+ replyMessage.getBoolean("eligible"));
@@ -1054,7 +1055,7 @@ public class ClinicalsApp {
 }
 ```
 ```java
-// consumer application
+// consumer application. It will simply set a listener on a queue
 public class EligibilityCheckerApp {
 
   public static void main(String[] args) throws NamingException, JMSException, InterruptedException {
@@ -1124,7 +1125,7 @@ public class EligibilityCheckListener implements MessageListener {
     }
 }
 ```
-Notice that we need to keep the consumer application up for enough time for the producer application to produce and send a message to it. That's why the consumer applications has the command `Thread.sleep(10000);`. To test this example we first need to start the application setting the listening of the `requesQueue`, ie. the consumer application `EligibilityCheckerApp`, and then the producer application. The producer `ClinicalsApp` application will print out:
+Notice that we need to keep the consumer application up for enough time for the producer application to produce and send a message to it. That's why the consumer applications has the command `Thread.sleep(10000);`. To test this example we first need to start the application setting the listening of the `requestQueue`, ie. the consumer application `EligibilityCheckerApp`, and then the producer application. The producer application `ClinicalsApp` will print out:
 ```text
 patient eligibility is: false
 ```
@@ -1136,6 +1137,10 @@ Patient copay is: 100.0
 Patient amount to be paid: 500.0
 Listener app finished
 ```
+
+## Load balancing
+A simple way for obtaining load balancing when using JMS is to attach several listeners to the same "busy" queue, and run each of these listeners in _different threads_. The JMS provider will readily manage the reading of the messages in the queue by different threads, removing them from the queue whenever any thread invokes the method `receive()`. In the example below, we  _simulate_ this type of load balancing. It wouldn't be a simulation if the two consumer were running in different threads, but they are running in the same.
+
 
 
 
