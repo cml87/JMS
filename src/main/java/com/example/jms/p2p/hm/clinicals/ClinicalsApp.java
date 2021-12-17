@@ -16,7 +16,7 @@ public class ClinicalsApp {
         Queue replyQueue = (Queue) initialContext.lookup("queue/replyQueue");
 
         try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
-             JMSContext jmsContext = cf.createContext()){
+             JMSContext jmsContext = cf.createContext()) {
 
             Patient patient = new Patient(123, "Bob");
             patient.setInsuranceProvider("Blue Cross Blue Shield");
@@ -27,12 +27,14 @@ public class ClinicalsApp {
             ObjectMessage objectMessage = jmsContext.createObjectMessage();
             objectMessage.setObject(patient);
 
-            producer.send(requestQueue, patient);
+            for (int i = 1; i <= 10; i++)
+                producer.send(requestQueue, patient);
 
-            JMSConsumer consumer = jmsContext.createConsumer(replyQueue);
-            MapMessage replyMessage = (MapMessage) consumer.receive(30000);
 
-            System.out.println("patient eligibility is: "+ replyMessage.getBoolean("eligible"));
+//            JMSConsumer consumer = jmsContext.createConsumer(replyQueue);
+//            MapMessage replyMessage = (MapMessage) consumer.receive(30000);
+//
+//            System.out.println("patient eligibility is: "+ replyMessage.getBoolean("eligible"));
 
         }
     }

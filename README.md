@@ -714,7 +714,7 @@ public class RequestReplyDemo {
    }
 }
 ```
-Notice that the correlationId of the consumed reply, in the producer side, will result equal to the correlationId we set in the reply message, in the consumer side, only if the replay queue is a `TemporaryQueue`, I don't know why ??? 
+In my experiments the correlationId of the consumed reply, in the producer side, will result equal to the correlationId we set in the reply message, in the consumer side, <u>only if</u> the replay queue is a `TemporaryQueue`, I don't know why ??? 
 
 Notice also how we can add sent messages in the producer side to a Map, using as key the messageID, and then retrieve them using as key the correlationId of the reply message. This is how we set the request-reply linkage.
 
@@ -1139,9 +1139,63 @@ Listener app finished
 ```
 
 ## Load balancing
-A simple way for obtaining load balancing when using JMS is to attach several listeners to the same "busy" queue, and run each of these listeners in _different threads_. The JMS provider will readily manage the reading of the messages in the queue by different threads, removing them from the queue whenever any thread invokes the method `receive()`. In the example below, we  _simulate_ this type of load balancing. It wouldn't be a simulation if the two consumer were running in different threads, but they are running in the same.
+A simple way for obtaining load balancing when using JMS is to attach several listeners to the same "busy" queue, and run each of these listeners in _different threads_, either in the same application instance or not. The JMS provider will readily manage different threads reading messages from the same queue by, and will provide to remove them from the queue whenever any thread invokes the method `receive()`. In the example below, we  _simulate_ this type of load balancing. It wouldn't be a simulation if the two consumer were running in different threads, but they are.
+```java
+public class EligibilityCheckerApp {
 
+    public static void main(String[] args) throws NamingException, JMSException, InterruptedException {
 
+        System.out.println("Listener app started ...");
+
+        InitialContext initialContext = new InitialContext();
+        Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
+
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()) {
+
+            // we set two consumers attached to the same queue
+            JMSConsumer consumer1 = jmsContext.createConsumer(requestQueue);
+            JMSConsumer consumer2 = jmsContext.createConsumer(requestQueue);
+
+            // We alternate the two consumers in consuming the messages in the same queue
+            for (int i = 1; i <= 10; i+=2) {
+                System.out.println("Consumer1: " + consumer1.receive());
+                System.out.println("Consumer2: " + consumer2.receive());
+            }
+        }
+        System.out.println("Listener app finished");
+    }
+}
+```
+```java
+public class ClinicalsApp {
+
+    public static void main(String[] args) throws NamingException, JMSException {
+
+        InitialContext initialContext = new InitialContext();
+        Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
+        Queue replyQueue = (Queue) initialContext.lookup("queue/replyQueue");
+
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()) {
+
+            Patient patient = new Patient(123, "Bob");
+            patient.setInsuranceProvider("Blue Cross Blue Shield");
+            patient.setCopay(100d);
+            patient.setAmountToBePayed(500d);
+
+            JMSProducer producer = jmsContext.createProducer();
+            ObjectMessage objectMessage = jmsContext.createObjectMessage();
+            objectMessage.setObject(patient);
+
+            // send 10 messages to the queue
+            for (int i = 1; i <= 10; i++)
+                producer.send(requestQueue, patient);
+
+        }
+    }
+}
+```
 
 
 
