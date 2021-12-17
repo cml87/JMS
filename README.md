@@ -15,9 +15,9 @@ Outline:
 7. Filtering messages
 8. Message guarantee: Acknowledgment and Transaction
 
-The course is divided into 14 sections. I will organize my notes per section.
+The course is divided into 14 sections.
 
-## 2. Messaging Basics
+## Messaging Basics
 Messaging is the process of exchanging business data or information across applications, or across components within the same application. The components of a messaging system are:
 1. The message: contains the business data as well as networking or routing headers.
 2. Sender (an application)
@@ -34,15 +34,15 @@ The Messaging Server provides useful services such as fault tolerance, load bala
   ![image info](./pictures/messaging_system.png)
   
 ## Messaging advantages
-A messaging server decouples the sender and receiver applications allowing for heterogeneous integration. Each application can be a service or a micro-service, developed in different programming languages and running on completely different environments. Moreover, they can be replaced at any time, as they will all fallow the same (abstract) contract set by the MOM. This **increase the flexibility** of our application, also good for microservices.
+A messaging server decouples the sender and receiver applications allowing for heterogeneous integration. Each application can be a service or a micro-service, developed in different programming languages and running on completely different environments. Moreover, they can be replaced at any time, as they will all fallow the same (abstract) contract set by the MOM. This **increases the flexibility** of our application, also good for microservices.
 
 ![image info](./pictures/heterogeneous_integration.png)
 
-Before messaging came in, applications communication was made through a database or making remote procedural calls. This introduced tight coupling among applications ?. Messaging brought in the desired **loose coupling**, making applications need to know nothing about each other. All the request and response process is now mediated through the MOM. 
+Before messaging came in, applications communication was made through a database or making remote procedural calls. This introduced tight coupling among applications ?. Messaging brought in the desired **loose coupling**, making applications not to need know anything about each other. All the request and response process is now mediated through the MOM. 
 
-Compared to web services (HTTP request/response), MOMs are more reliable as request and response messages are persisted, so there are much fewer chances they are lost.
+Compared to web services (HTTP request/response), MOMs are more reliable as request and response messages are persisted (in the queue), so there are much fewer chances they are lost.
 
-Messaging also **reduce system bottlenecks** and **increase scalability**. If a queue only has one receiver application and there are much more messages in the queue than the app can process, we can introduce more instances of the same consumer application set to listen the same queue. In other words, we can spin off more instances of the consumer application as the load increase, and they will work asynchronously !
+Messaging also **reduce system bottlenecks** and **increase scalability**. If a queue only has one receiver application and there are much more messages in the queue than the app can process, we can introduce more instances of the same consumer application set to listen the same queue. In other words, we can spin off more instances of the consumer application as the load increases, and they will work asynchronously !
 
 ![image info](./pictures/system_bottleneck.png)
 
@@ -52,7 +52,7 @@ JMS is a specification for messaging services in Java applications. It is mainta
 
 **JMS is for messaging what JDBC is for databases**.
 
-In this course we will use Apache ActiveMQ Artemis as JMS provider. It is a JMS client. Once installed we need to create a broker ? and run it. We'll need to create the <u>administered objects</u>:
+In this course we will use Apache ActiveMQ Artemis as JMS provider. It is a JMS client. Once installed we need to create a **broker ?** and run it. We'll need to create the <u>administered objects</u>:
 - ConnectionFactory
 - Queue (for P2P messaging)
 - Topic (for PUB-SUB messaging)
@@ -67,11 +67,11 @@ The JMS provider will give us durability, scalability, acknowledgment, transacti
 JMS supports two types of messaging models: Point-to-Point and Publish/Subscriber.
 
 ### Point-to-Point
-The Point-to-Point (P2P) messaging model allows sending and receiving messages both synchronously and asynchronously, through channels called **queues**. The JMS provider allow creating queues. There will be a Producer, or Sender, application adding messages to the queue. And there will be a Receiver, or Consumer, application taking the messages from the queue.
+The Point-to-Point (P2P) messaging model allows sending and receiving messages both synchronously and asynchronously, through channels called **queues**. The JMS provider allows creating queues. There will be a Producer, or Sender, application adding messages to the queue. And there will be a Receiver, or Consumer, application taking the messages from the queue.
 
 In Point-to-Point messaging the message that is put into the queue is consumed by only one application and then removed from the queue. The JMS provider will ensure this.
  
-P2P messaging supports **asynchronous fire and forget**, which means that the producer application will send the message to the JMS provider and will forget it. The consumer application will then consume and process it however it wants. However, it also supports **synchronous request/replay messaging**. In this case, after the producer application sends a message to the queue, the consumer application receives it, process it, and sends a message back to the producer app. through a different queue. The producer will read this message as a response.
+P2P messaging supports **asynchronous fire and forget**, which means that the producer application will send the message to the JMS provider and will forget it. The consumer application will then consume and process it however it wants. However, it also supports **synchronous request/replay messaging**. In this case, after the producer application sends a message to the queue, the consumer application receives it, process it, and sends a message back to the producer app. through a different queue. The producer will read this message as a response. We'll see this case later.
 
 ![image info](./pictures/point_to_point2.png)
 
@@ -86,19 +86,19 @@ In the PUB-SUB messaging model messages are automatically broadcasted to the con
 ## Apache ActiveMQ installation
 I installed Apache ActiveMQ 2.19 by downloading it from https://activemq.apache.org/components/artemis/download/ and unzipping it in /opt.
 
-Once "installed" I need to go to `/opt/apache-artemis-2.19.0/bin/` and run 
+When working wiht JMS providers, I think a running JMS server is called a **broker**. Brokers are created in some directory. I decided to create mine `/opt/apache-artemis-2.19.0/brokers/`, which I also crated after install. The command to create a broker is `artemis create <broker_dir_ffn>`, for example:
 ```text
-$ ./bin/artemis create brokers/mybroker
+/opt/apache-artemis-2.19.0/bin/$ artemis create ../brokers/mybroker
 ```
-to _create_ a **JMS broker**, or server. In this case the name I chose for the broker is "mybroker" . I decided to create my brokers inside the directory `/opt/apache-artemis-2.19.0/brokers/`, but they can be created anywhere. When creating the broker, user and password properties will be asked to be set, as well as whether we want to allow anonymous access to the broker.
+In this case the name I chose for the broker is "mybroker" . I decided to create my brokers inside the directory `/opt/apache-artemis-2.19.0/brokers/`, but they can be created anywhere. When creating the broker, user and password properties will be asked to be set, as well as whether we want to allow anonymous access to the broker.
 
-Now go to the `bin` directory inside the created broker directory and run
+To start the broker, or JMS server, we go to the `bin` directory inside the created broker directory and run
 ```text
 $ artemis run
 ```
 sudo privileges may be needed depending on where we created the server. This command will create a set of predefined queues and topics on the fly. Startup logs will be printed out with all the  useful information about the started services, similar to when we start an application server such as Wildfly.
 
-The file `mybroker/etc/broker.xml` will be a configuration file with lots of configurations, including queues and topics. We can edit this file directly, or the jndi.properties file of our project, to create queues. It seems that if we ask for a queue that doesn't extis, Artemis can create it for us in the fly.
+The file `mybroker/etc/broker.xml` will be a configuration file with lots of configurations, including queues and topics. We can edit this file directly, or the **jndi.properties** file of our project, to create queues. As we'll see later, it seems that if we ask for a queue in our code defined in the jndi.properties file but that doesn't exist in the server, Artemis can create it for us on the fly.
 
 ## Components of the JMS 1.x API
 The 7 important components (classes) of the JMS 1.x API are:
@@ -110,11 +110,13 @@ The 7 important components (classes) of the JMS 1.x API are:
 6. Message Producer
 7. Message Consumer
  
-The **ConnectionFactory** and the **Destination** are provided by the JMS provider, which will create and put them in the JNDI registry from where we can retrieve them. From the ConnectionFactory we get a Connection. From the Connection we then get a Session. 
+The **ConnectionFactory** and the **Destination** are provided by the JMS provider, which will create and put them in the JNDI registry. Once in the JNDI registry these resources can be retrieved from our code. From the ConnectionFactory we get a Connection. From the Connection we then get a Session. 
 
-A Session is a unit of work. We can create any number of session using a single connection to the JMS provider (server?). From the Session we can create a Message and a MessageProducer to send the message. In the consumer part of the application we'll also use a Session to create a MessageConsumer to consume the message. We will have queue producers/consumers and topic producer/consumer.
+A Session is a unit of work. We can create any number of sessions using a single connection to the JMS provider (server?). From the Session we can create a Message and a MessageProducer to send the message. In the consumer part of the application we'll also use a Session to create a MessageConsumer to consume messages. We will have queue producers/consumers and topic producer/consumer.
 
-So we have JNDI tree -> ConnectionFactory -> Session -> Message -> MessageProducer or Consumer.
+So we have JNDI tree -> ConnectionFactory -> Session -> Message -> MessageProducer or Consumer.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Session -> MessageProducer or Consumer.
+
 
 ## Project setup
 A pom file for our messaging example project can be:
@@ -177,7 +179,9 @@ A pom file for our messaging example project can be:
 
 Q: What's the difference between a JMS client and a JMS provider?
 
-The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration. ActiveMQ will read a properties file `jndi.properties` in the resources' directory (in the class path). In this file we will specify the `InitialContext` class, as well as some other properties that will be used to look up for resources in the JNDI tree of the JMS server.
+The javax and Spring dependencies are not strictly needed, but I include them because I want to use Spring and annotations configuration.
+
+ActiveMQ will read a properties file `jndi.properties` in the resources' directory (in the class path). In this file we will specify the `InitialContext` class, as well as some other properties that will be used to look up for resources in the JNDI tree of the JMS server.
 
 ## Sending and receiving messages from a Queue
 
@@ -264,9 +268,15 @@ When we create an instance of InitialContext with
 ```java
 initialContext = new InitialContext();
 ```
-it will automatically use the information defined in the application.properties file. I think we will get the `InitialContext` from the factory class we have specified in property `java.naming.factory.initial`. And this factory class is specific to the JMS vendor we are using.
-
-In the queue name specification, the first "queue." indicates it is a queue type of administered object. There is no queue named "myQueue". It will be created dynamically at run time. However, I don't understand whether the JNDI name will be "queue/myQueue" (left member) or "myQueue" (right member). In the code we use "queue/myQueue" as argument to `lookup()` anyway, buh.
+it will automatically uses the information defined in the application.properties file. The object returned by `new InitialContext()` represents the root of the JNDI tree of the naming server the JMS server has. From there we can start to look up resources. I think we will get the `InitialContext` object from the factory class we have specified in property `java.naming.factory.initial`, ie. `org.apache.activemq.artemis.jndi.ActiveMQInitialContextFactory`. This factory class is specific to the JMS vendor we are using; it will be in the jar file `artemis-jms-client-all-2.6.4.jar` we included in the class path of the project with the maven dependency:
+```xml
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>artemis-jms-client-all</artifactId>
+            <version>2.6.4</version>
+        </dependency>
+```
+In the queue name specification, the first "queue." indicates it is a queue type of administered object. There is no queue named "myQueue". It will be created dynamically at run time. However, I don't understand whether the JNDI name will be "queue/myQueue" (left member) or "myQueue" (right member). In the code we use "queue/myQueue" as argument to `lookup()` anyway, buh. I think that `queue/myQueue` will be a JNDI name, a reference to a JNDI resource. The resource will be then a queue named `myQueue`.
 
 These are properties that the ArtemisMQ JMS broker host needs to setup a JNDI tree. I'm not sure whether these properties will just be that, properties to be loaded by our application, or will also create bindings and resources in the JMS server. But I think it defines bindings with the names and types we specify. For example, the line:
 ```text
@@ -276,9 +286,9 @@ defines a resource of type "connectionFactory" with name "ConnectionFactory" and
 
 **---->** For the case of the queue, the teacher said it is created by the JMS provider the first time we `lookup()` for it in our code. May be the Connection Factory is also created the first time we lookup for it, buh.
 
-Each call to `consumer.receive()` will consume a message from the queue and will delete it. messages are consumed in order, in a first-in first-out fashion. We can call several times to `.receive()` to consume each message in the queue in order. 
+Each call to `consumer.receive()` will consume a message from the queue and will delete it. Messages are consumed in order, in a first-in first-out fashion. We can call several times to `.receive()` to consume each message in the queue in order.
 
-Notice that a call to `receive()` is blocking. In other words, the program will stop until this method gets a message from the queue. If there are no messages in the queue, it will wait for one forever, I think, if we don't specify a timeout. If after the timeout no message has been retrieved from the queue (no messages have arrived while we were waiting), the method will return with `null`.  
+Notice that a call to `receive(<timeout_milis>)` is <u>blocking</u>. In other words, the program will stop until this method gets a message from the queue. If there are no messages in the queue, it will wait for one forever, I think, if we don't specify a timeout. In case no message has been retrieved after the timout from the queue (no messages have arrived while we were waiting), the method will return with `null`.  
 
 ## Sending and receiving messages from a Topic
 Sending and receiving messages form a Topic follows the same pattern as for a Queue:
@@ -291,14 +301,14 @@ Sending and receiving messages form a Topic follows the same pattern as for a Qu
 7. start the connection, so the consumers can receive messages from the queues
 8. receive the TextMessage with the consumers invoking `.receive()`
 
-Notice that consumers will only receive messages sent to the topic after they have subscribed.
+Notice that consumers will only receive messages sent to the topic <u>after</u> they have subscribed to it.
 Here is the example code
 ```java
 public class FirstTopic {
 
     public static void main (String[] args) throws NamingException, JMSException {
 
-        InitialContext initialContext = initialContext = new InitialContext();
+        InitialContext initialContext = new InitialContext();
         Topic topic = (Topic) initialContext.lookup("topic/myTopic");
         ConnectionFactory connectionFactory = (ConnectionFactory) initialContext.lookup("ConnectionFactory");
 
@@ -330,7 +340,7 @@ public class FirstTopic {
     }
 }
 ```
-Question: When all consumers subscribed to the queue have received a message, is that message removed from the queue?
+**Question**: When all consumers subscribed to the queue have received a message, is that message removed from the queue?
 
 ## Looping through the messages in Queue
 We can loop through the messages in a queue <u>without consuming them</u> (without removing them from the queue). For this, we use another object that can be obtained from the `Session` and the destination, like when we obtain a `MessageProducer` or a `MessageConsumer`. It is called `QueueBrowser`:
