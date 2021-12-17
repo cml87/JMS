@@ -671,7 +671,7 @@ public class RequestReplyDemo {
 }
 ```
 
-### Temporaty queue
+### Temporary queue
 The queue where a producer wants to receive a message back as reply, can be a `TemporaryQueue`. This is a queue directly created from a context, instead of being retrieved from the JNDI tree. "A `TemporaryQueue` object is a unique Queue object created for the duration of a Connection. It is a system-defined queue that can be consumed only by the Connection that created it." ??
 
 We create a temporary queue as:
@@ -736,7 +736,7 @@ In my experiments the correlationId of the consumed reply, in the producer side,
 Notice also how we can add sent messages in the producer side to a Map, using as key the messageID, and then retrieve them using as key the correlationId of the reply message. This is how we set the request-reply linkage.
 
 ## Message expiration
-We can set an expiry time, or time-to-live, to a message with `setTimeToLive`.  If a message is not consumed before it is expired, it will be moved to an "expiry queue" automatically, disappearing from the queue we send it to. We set the timeToLive in the producer with which we'll send the message, not on the message itself.
+We can set an expiry time, or time-to-live, to a message with `setTimeToLive`. It is a provider-set header, like the priority.  If a message is not consumed before it is expired, it will be <u>moved to an "expiry queue" automatically</u>, disappearing from the queue we send it to. We set the timeToLive in the producer with which we'll send the message, not on the message itself.
 
 The expiry queue will be set automatically by the JMS provider. In the configuration file `broker.xml` it appears configured with name `ExpiryQueue`. From our code we can get the JNDI reference to it if we include in the `jndi.propeties`:
 ```text
@@ -781,7 +781,7 @@ public class MessageExpirationDemo {
 ```
 
 ## Message delivery delay
-Other than the time-to-live, in the producer we can set a delivery delay period of time, so that messages sent with it will actually be sent after such time, when we call `send()`. Here is the example:
+Other than headers time-to-live and priority, in the producer we can set a delivery delay period of time header, so that messages sent with it will actually be sent after such time, when we call `send()`. Here is the example:
 ```java
 public class MessageDelayDemo {
    public static void main(String[] args) throws NamingException, InterruptedException {
