@@ -343,8 +343,7 @@ public class FirstTopic {
 **Question**: When all consumers subscribed to the queue have received a message, is that message removed from the queue?
 
 ## Looping through the messages in Queue
-We can loop through the messages in a queue <u>without consuming them</u> (without removing them from the queue). For this, we use another object that can be obtained from the `Session` and the destination, like when we obtain a `MessageProducer` or a `MessageConsumer`. It is called `QueueBrowser`:
-
+We can loop through the messages in a queue <u>without consuming them</u> (without removing them from the queue). For this, we use another object that can be obtained from the `Session` and the destination, like when we obtain a `MessageProducer` or a `MessageConsumer`. It is called `QueueBrowser`. Method `getEnumeration()` invocated in a `QueueBrowser` object returns an object implementing the legacy interface `Enumeration`, which is similar to the modern interface `Iterator`:
 ```java
 
 /**
@@ -436,9 +435,9 @@ Message received: Message 2
 ```
 
 ## JMS 2.0 introduced in Java EE 7
-JMS 2.0 makes it much easier to send and receive messages. It shortens the steps we saw before. JMS 2.0 provides a new class that is the combination of a Connection and a Session, `JMSContext`, from which  create producer and consumer objects `JMSProducer` and a `JMSConsumer`. All `JMSContext`, `JMSProducer` and `JMSConsumer` implement `java.lang.AutoClosable`, so we will not need to close them explicitly, provided we use them inside a try/catch block. Moreover,`JMSProducer` and `JMSConsumer` give us easy access to a message's Headers, Properties and Body. 
+JMS 2.0 makes it much easier to send and receive messages. It shortens the steps we saw before. JMS 2.0 provides a new class that is the combination of a Connection and a Session, `JMSContext`, from which we create producer and consumer objects `JMSProducer` and a `JMSConsumer`. All `JMSContext`, `JMSProducer` and `JMSConsumer` implement `java.lang.AutoClosable`, so we will not need to close them explicitly, provided we use them inside a try/catch block. Moreover,`JMSProducer` and `JMSConsumer` give us easy access to a message's Headers, Properties and Body. 
 
-JMS 2.0 in Java EE 7 compatible application servers allows injecting the Connection Factory and destination resources easily into our code as:
+JMS 2.0 is the JMS version implemented in in Java EE 7 and 8. With this version, compatible application servers allow injecting the Connection Factory and destination resources easily into our code as:
 ```java
 @Inject
 @JMSConnectionFactory("jms/connectionFactory") private JMSContext context;
@@ -447,7 +446,7 @@ JMS 2.0 in Java EE 7 compatible application servers allows injecting the Connect
 private Queue dataQueue
 ```
 
-With JMS 2.0 we'll create a connection factory object, `ActiveMQConnectionFactory`, and from it we'll instantiate directly a context object, instead of a session, `JMSContext`. The way we'll use this context object to send and receive messages to queues will be similar to what we saw before with the session object.
+With JMS 2.0 we'll create a connection factory object, `ActiveMQConnectionFactory`, and from it we'll instantiate directly a context object `JMSContext`, instead of a session. The way we'll use this context object to send and receive messages to queues will be similar to what we saw before with the session object. One difference is that now only the consumer will be instantiated specifying also the queue to be read. The producer will not need the target queue at initialization time, it will be specified later when we call `send(<queue_name>)` with it.
 
 I think the line 
 ```java
@@ -481,12 +480,12 @@ public class JMSContextDemo {
    }
 }
 ```
-Notice that a producer `JMSProducer` is created from the context without specifying the destination to which we want to send messages later with it. The destination is specified when we can `send()` on the producer:
+Notice that different to JMS 1.1, producer `JMSProducer` is created from the context without specifying the destination to which we want to send messages later with it. The destination is specified when we call `send()` on the producer:
 ```java
 JMSProducer producer = jmsContext.createProducer();
 producer.send(queue, "Arise awake and stop not till the goal is reached");
 ```
-On the other hand, a consumer `JMSConsumer` do need the destination from which we'll consume messages with it after:
+On the other hand, a consumer `JMSConsumer` does need the destination from which we'll consume messages with it after:
 ```java
 JMSConsumer consumer = jmsContext.createConsumer(queue);
 String messageReceived = consumer.receiveBody(String.class);
@@ -494,8 +493,10 @@ String messageReceived = consumer.receiveBody(String.class);
 
 ## JMS message
 
-Messages communicate all the data an event possible in the JMS specification. A message is divided into three parts: _Header_, _Properties_ and _Body_ (or Payload).
+Messages communicate all the data and events possible in the JMS specification. A message is divided into three parts: **_Header_**, **_Properties_** and **_Body_** (or Payload).
 The Body can be of different types: byte message, text message, object message etc.
+
+### Message headers
 
 The message headers are metadata. There are provider-set headers and developer-set headers. 
 
@@ -506,11 +507,13 @@ The message headers are metadata. There are provider-set headers and developer-s
 - JMSTimeStamp: timestamp at which the message was received by the JMS provider.
 - JMSExpiration: time at which, if reached, the message will be expired?.
 - JMSRedelivered: set by the provider when it re-delivers the message to a particular consumer, because that message was not delivered in its prior try ?
-- JMSPriority: an integer ranged 0-9 meaning priority of the message. 0-4 is called 'normal priority', 5-9 is called high priority. 
+- JMSPriority: an integer ranged 0-9 meaning message priority. 0-4 is "normal priority", 5-9 is "high priority". 
+
+_Can I_ send a message invoking `send()` with no destination argument, if the messaga already has the destination queue specified in header `JMSDestination`?
 
 **Developer-set headers** include:
 - JMSReplayTo: The producer application will set this header so that the consumer application know which destination it should replay back on, in a request/replay scenario.
-- JMSCorrelationID: also used in a request/replay scenario. The consumer application will set it with the JMSMessageId of the request message for which it is sending the response back. This way the producer application can relate the incoming response with the particular request it previously sent. So it is to "correlate" request with its response.
+- JMSCorrelationID: also used in a request/replay scenario. The consumer application will set it with the JMSMessageId of the request message for which it is sending the response back. This way the producer application can relate the incoming response with the particular request it previously sent. So it is to _correlate_ a request with its response.
 - JMSType: set by the producer application. Used to convey what type of message is being sent
 
 Any Developer-set header can be set in the message itself, before sending it. It can also be set in the producer, for all messages sent with it. For example:
@@ -522,6 +525,9 @@ message.setJMSReplyTo(replyQueue);
 producer.send(requestQueue, message);
 ```
 
+_Can I_ invent new headers?
+
+### Message properties
 Properties are also divided into provider-set properties and developer-set properties. At the producer side, **developer-set** (or **application specific**) properties can be added to the message as key-value pair, with method `setXXXProperty`. XXX stands for a particular type, such as integer, boolean, string etc (primitives ?). At the consumer end we can then retrieve any property with `getXXXPropety`. 
 
 **Provider-set** properties include JMSXUserID, JMSXAppID, JMSXProducerTXID, JMSXConsumerTXID, JMSXRcvTimeStamp, JMSDeliveryCount, JMSXState, JMSXGroupID and JMSXGroupSeq. It is not mandatory for the provider to support all of them. We don't usually touch the provider-set properties.
@@ -531,7 +537,7 @@ The properties JMSXGroupID and JMSXGroupSeq are used when we work with groups of
 Messages can be filtered by both its headers and its properties.
 
 ## Message priority
-The priority of the messages present in a queue affect the order in which they are received when we call `receive()` in a consumer. Messages with higher priority will be received first. Instead of setting the priority to the message itself, we set the priority to the producer with which we'll send it. Once a producer has been set with a priority, all messages sent with it will have that priority in the queue. Here is an example:
+The priority of the messages (provider-set header) present in a queue affect the order in which they are received when we call `receive()` in a consumer. Messages with higher priority will be received first. Instead of setting the priority to the message itself, we set the priority to the producer with which we'll send it. Once a producer has been set with a priority, all messages sent with it will have that priority in the queue. Here is an example:
 ```java
 public class MessagePriority {
    public static void main(String[] args) throws NamingException {
@@ -580,7 +586,7 @@ Notice how we retrieve the priority of the message with `getJMSPriority()` which
 If we don't set a priority for the messages in the producer, a default priority value will be set for them, say 4. In this case the messages will be retrieved by a consumer in the order they were received by the JMS provider.
 
 ## Request-replay scenario
-A consumer application can send a message to queue, a _request_, from which the message is consumed after by a consumer application. The consumer application can then consume and process this message, sending another one to another queue, which can be consumed by the producer, as a _replay_. Here is an example:
+A producer application can send a message to queue, a _request_, from which the message is consumed after by a consumer application. The consumer application can then consume and process this message, sending another one to another queue, which can be consumed by the producer, as a _replay_. Here is an example:
 ```java
 public class RequestReplyDemo {
    public static void main(String[] args) throws NamingException {
@@ -599,7 +605,6 @@ public class RequestReplyDemo {
            /* producer application */
            JMSProducer producer = jmsContext.createProducer();
            producer.send(requestQueue, "Arise awake and stop not till the goal is reached");
-
 
            /* consumer application*/
            JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
@@ -665,7 +670,9 @@ public class RequestReplyDemo {
    }
 }
 ```
-The queue where a producer wants to receive a message can be a `TemporaryQueue`, which is a queue directly created from a context instead of being retrieved from the JNDI tree. "A `TemporaryQueue` object is a unique Queue object created for the duration of a Connection. It is a system-defined queue that can be consumed only by the Connection that created it." ??
+
+### Temporaty queue
+The queue where a producer wants to receive a message back as reply, can be a `TemporaryQueue`. This is a queue directly created from a context, instead of being retrieved from the JNDI tree. "A `TemporaryQueue` object is a unique Queue object created for the duration of a Connection. It is a system-defined queue that can be consumed only by the Connection that created it." ??
 
 We create a temporary queue as:
 ```java
