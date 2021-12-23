@@ -815,7 +815,7 @@ public class MessageDelayDemo {
 ```
 
 ## Custom message properties
-Custom message properties can be set in the message or in the producer. Properties can then be retrieved in the consumer side, from the message. We can set a property of any primitive type, or even of Object type, which determines which setter and getter method we use for the property. When we set a property, we must specify a name for it, other than a (proper type) value. For example:
+Custom message properties can be set in the message or in the producer. Properties can then be retrieved in the consumer side, from the message. We can set a property of any primitive type, or even of Object type, which determines which setter and getter method we use for the property. When we set a property, we must specify a name for it, other than a value (proper type). For example:
 ```java
 public class MessagePropertiesDemo {
    public static void main(String[] args) throws NamingException, InterruptedException, JMSException {
@@ -838,7 +838,6 @@ public class MessagePropertiesDemo {
            message.setStringProperty("userToken", "abc123");
            producer.send(queue, message);
 
-           // we'll get the message after three seconds
            TextMessage messageReceived = (TextMessage) jmsContext.createConsumer(queue).receive();
            System.out.println(messageReceived);
            System.out.println(messageReceived.getBooleanProperty("loggedIn"));
@@ -850,12 +849,14 @@ public class MessagePropertiesDemo {
 ```
 
 ## Types of messages
-We can use 5 different types of messages when working with JMS. They all implement the <u>`Message` interface</u>:
+Among the types of messages we can send with JMS, there are 5 implementing the <u>`Message` interface</u>:
 1. TextMessage: Used to send text data as Strings
 2. ByteMessage: Bytes, binary level 
 3. ObjectMessage: send an object that can be (de)serialized.
 4. StreamMessage: Stream Java objects and wrap primitive types? The consumer must read the stream in the same order it was written by the producer ?
 5. MapMessage: A set of key-value pairs
+
+It's not clear to me when to use which one. The way in which we set and fetch the payload for each of these message is different (read and write methods to be used).
 
 ### Byte message
 This is how we can send and receive a bytes message:
@@ -945,7 +946,7 @@ public class MessageTypesDemo {
 }
 ```
 ### Object message
-When and object implements interface `Serializable`, we can send it through a `ObjectMessage`. We will create an `ObjectMessage` and `set` and `get` the object it carries when sending and receiving the message, respectively. For example:
+When and object implements interface `Serializable`, we can send it through an `ObjectMessage`. We will create an `ObjectMessage` and `setObject()` and `getObject()` the object it carries when sending and receiving the message, respectively. For example:
 ```java
 
 public class Patient implements Serializable {
@@ -1021,21 +1022,21 @@ However, if we want to set headers or properties, we do need to create and send 
 
 ## Point-to-Point messages (P2P)
 P2P communication is used in the fallowing cases:
-1. One to one communication with a request/response scenario. The request will be sent by the asker, through a queue, to the responder. The responder will respond through another queue, from which the response will read by the asker. Once read, the response will be deleted. The key is that the <u>response is needed only once</u>, so once it is read by the asker, no other application can read it.
+1. One to one communication with a request/response scenario. The request will be sent by the asker, through a queue, to the responder. The responder will respond through another queue, from which the response will be read by the asker. Once read, the response will be deleted. The key is that the <u>response is needed only once</u>, so once it is read by the asker, no other application can read it.
 2. Interoperability among application built and/or running in different platforms. Decoupling.
 3. Throughout/Performance. An application can receive its inputs, or requests through a queue. When the load increases, we can either increase the number of threads, or instances, of the application listening the same queue, or we can increase the number of queues, each listened by a new copy of the application. 
 4. Possibility of browsing, or looping through, the messages in the queue without consuming (deleting) them, as this cannot be done with PUB/SUB messaging. Class `QueueBrowser`.
 
 ## Asynchronous processing of messages. Listener and `onMessage()`
-The operation of reading a message with a consumer using method `receive()` is a blocking operation. If there are no messages in the queue the consumer will simply block waiting for one, without doing any other job. This is **synchronous processing**.
+The operation of reading a message with a consumer using method `receive()` is a blocking operation. If there are no messages in the queue, the consumer will simply block waiting for one, without doing any other job. This is **synchronous processing**.
 
-The JMS api allows for **asynchronous processing** though, through interface `MessageListener`. This interface has a method `onMessage(Message m)`. A "consumer", or "listener", class implementing this interface, will override this method specifying the action to be taken when a message arrive to the _listened_ queue. This class needs to be registered with the JMS provider in the consumer side code, passing it to a consumer. For example, if `EligibilityCheckListener` is the consumer class, we do this with:
+The JMS api allows for **asynchronous processing** though, through interface `MessageListener`. This interface has a method `onMessage(Message m)`. A "consumer", or "listener", class implementing this interface, will override this method specifying the action to be taken when a message arrive to the _listened_ queue. This class needs to be "registered" with the JMS provider in the consumer side code, passing it to a consumer. For example, if `EligibilityCheckListener` is the consumer class, we register it with consumer `consumer` with:
 ```java
 consumer.setMessageListener(new EligibilityCheckListener());
 ```
-In this way, the JMS provider will invoke its method `onMessages()` whenever a message arrive to the listened queue, and will pass it that message as argument. 
+In this way, the JMS provider will invoke the listener method `EligibilityChechkListener.onMessages()` whenever a message arrive to the queue to which consumer `consumer` is attached. This method will receive in its parameter the message arrived to the queue. Remember, every consumer must specify a queue to which attach when it is declared. 
 
-In the example below the producer application is `ClinicalsApp`, and the consumer application is `EligibilityCheckerApp`. Both these classes have a `main()` method, that's why they are separate "applications". The producer application will send a request (a message) through a `requestQueue`, from where the consumer application will read it, by means of a listener class `EligibilityCheckListener`. After processing the request in method `EligibilityCheckListener.onMessage()`, the consumer application will generate a response (another message) and will send it to a `replyQueue`. The later will be then read by the consumer application to fetch the response, making the application end. The first part of the communication (producer -> consumer) is asynchronous, since the producer application will send the request to a queue that is "listened by" the consumer application. The second part of the communication (consumer -> producer) is synchronous though, since the producer will read the response message from the `replyQueue` with method `receive()`.
+In the example below the producer application is `ClinicalsApp`, and the consumer application is `EligibilityCheckerApp`. Both these classes have a `main()` method, that's why they are separate "applications". The producer application will send a request (a message) through a `requestQueue`, from where the consumer application will read it, by means of a listener class `EligibilityCheckListener`. After processing the request in method `EligibilityCheckListener.onMessage()`, the consumer application will generate a response (another message) and will send it to a `replyQueue`. The later will then be read by the consumer application to fetch the response, making the application end. The first part of the communication (producer -> consumer) is asynchronous, since the producer application will send the request to a queue that is "listened by" the consumer application. The second part of the communication (consumer -> producer) is synchronous though, since the producer will read the response message from the `replyQueue` with method `receive()`.
 
 ```java
 // producer application
@@ -1156,7 +1157,7 @@ Listener app finished
 ```
 
 ## Load balancing
-A simple way for obtaining load balancing when using JMS is to attach several listeners to the same "busy" queue, and run each of these listeners in _different threads_, either in the same application instance or not. The JMS provider will readily manage different threads reading messages from the same queue by, and will provide to remove them from the queue whenever any thread invokes the method `receive()`. In the example below, we  _simulate_ this type of load balancing. It wouldn't be a simulation if the two consumer were running in different threads, but they are.
+A simple way for obtaining load balancing when using JMS is to attach several listeners to the same "busy" queue, and run each of these listeners in _different threads_, either in the same application instance or not. The JMS provider will readily manage different threads reading messages from the same queue, and will provide to remove them from the queue whenever any thread invokes the method `receive()`. In the example below, we  _simulate_ this type of load balancing. It wouldn't be a simulation if the two consumer were running in different threads, but they are.
 ```java
 public class EligibilityCheckerApp {
 
