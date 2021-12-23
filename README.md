@@ -1215,9 +1215,13 @@ public class ClinicalsApp {
 }
 ```
 
+## <i>Assignment</i>: CheckIn App
 
+We'll be building a CheckIn App for the assignment at the end of section 6 of the course. The app will be composed in turn of two apps: a client side code app called `CheckInApp` and a server side code app called `ReservationSystem`. The communication between the two apps will be asynchronous, in a request/replay scenario using JMS.
 
+The client code will send requests to the server code through a queue `requestQueue`. The reply to the client code will be sent back through a queue `replyQueue`. The request payload will be a pojo `Person` with fields id, firstName, lastName, birthDay, phone and email. The replay will be a MapMessage containing the boolean property `isReservationDone`. Reason for a failed reservation will be a failed validation of the `Person` pojo, or a ran out of available reservations slots (flights, rooms in a hotel, seats in a cinema etc.). Many validations could be implemented on the `Person` pojo, but for the sake of simplicity only one will be used on the person's age. The birthday field will be used to check for an age over 18 in order to successfully do a reservation.
 
+We'll use a P2P messaging model. The messages will make use of the `replyTo` and `correlationId` to establish the request-response relation. Load balancing will also ve illustrated through several consumer, or listeners, attached to the same request queue.
 
 
 
