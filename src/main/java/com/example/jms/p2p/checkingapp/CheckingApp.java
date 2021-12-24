@@ -60,10 +60,10 @@ public class CheckingApp {
 
             jmsContext.createProducer().send(message1.getJMSReplyTo(), response);
 
-            //MapMessage reply = (MapMessage) jmsContext.createConsumer(replyQueue).receive();
+            MapMessage reply = (MapMessage) jmsContext.createConsumer(replyQueue).receive();
 
-            //System.out.println("correlation id in reply: "+ reply.getJMSCorrelationID());
-            //System.out.println("reply message: isReservationDone:"+ reply.getBoolean("isReservationDone"));
+            System.out.println("correlation id in reply: "+ reply.getJMSCorrelationID());
+            System.out.println("reply message: isReservationDone:"+ reply.getBoolean("isReservationDone"));
 
 
         }
