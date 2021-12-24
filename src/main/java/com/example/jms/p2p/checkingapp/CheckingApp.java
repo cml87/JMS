@@ -7,6 +7,8 @@ import javax.jms.*;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CheckingApp {
 //    public Person(int id, String firstName, String lastName, LocalDate birthDay, String phone, String email) {
@@ -29,16 +31,26 @@ public class CheckingApp {
             message.setObject(person);
             message.setJMSReplyTo(replyQueue);
 
+            Map<String, ObjectMessage> messages = new HashMap<>();
+            messages.put(message.getJMSMessageID(), message);
 
             JMSProducer producer = jmsContext.createProducer();
+            System.out.println("message is: "+ message.toString());
+            System.out.println("message id is: "+message.getJMSMessageID());
             producer.send(requestQueue, message);
 
-            JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
-            ObjectMessage message1 = (ObjectMessage) consumer.receive();
 
-            Person person1 = (Person) message1.getObject();
-
-            System.out.println("received person is: "+ person1.toString());
+//            JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
+//            ObjectMessage message1 = (ObjectMessage) consumer.receive();
+//            Person person1 = (Person) message1.getObject();
+//
+//            MapMessage response = jmsContext.createMapMessage();
+//            response.setJMSCorrelationID(message1.getJMSMessageID());
+//            response.setBoolean("isReservationDone", true);
+//            jmsContext.createProducer().send(message1.getJMSReplyTo(), response);
+//
+//
+//            System.out.println("received person is: "+ person1.toString());
 
 
 
