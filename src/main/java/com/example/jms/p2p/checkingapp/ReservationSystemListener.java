@@ -9,10 +9,10 @@ import java.time.Period;
 
 public class ReservationSystemListener implements MessageListener {
 
-    private static int minimumAgeYears;
+    private int minimumAgeYears;
 
-    public static void setMinimumAgeYears(int minimumAgeYears) {
-        ReservationSystemListener.minimumAgeYears = minimumAgeYears;
+    public void setMinimumAgeYears(int minimumAgeYears) {
+        this.minimumAgeYears = minimumAgeYears;
     }
 
     @Override
