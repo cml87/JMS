@@ -25,10 +25,7 @@ public class ReservationSystemApp {
 
             Thread.sleep(7000);
 
-
         }
-
-
 
         System.out.println("Listener application ended");
     }

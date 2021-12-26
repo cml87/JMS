@@ -23,7 +23,7 @@ public class CheckingApp {
              JMSContext jmsContext = cf.createContext()) {
 
             Person person = new Person(123, "John", "Smith",
-                    LocalDate.parse("1990-01-23"), "+01 7896787788", "pepe@gmail.com");
+                    LocalDate.parse("2003-11-24"), "+01 7896787788", "pepe@gmail.com");
 
             JMSProducer producer = jmsContext.createProducer();
             ObjectMessage message = jmsContext.createObjectMessage();
@@ -36,23 +36,6 @@ public class CheckingApp {
 
             Map<String, ObjectMessage> messages = new HashMap<>();
             messages.put(message.getJMSMessageID(), message);
-
-
-//            JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
-//            ObjectMessage message1 = (ObjectMessage) consumer.receive();
-//            System.out.println("id of message received: "+ message1.getJMSMessageID());
-//
-//
-//            Person person1 = (Person) message1.getObject();
-//            System.out.println("Person received: "+ person1.toString());
-//
-//
-//            MapMessage response = jmsContext.createMapMessage();
-//            response.setJMSCorrelationID(message1.getJMSMessageID());
-//            response.setBoolean("isReservationDone", true);
-//
-//            jmsContext.createProducer().send(message1.getJMSReplyTo(), response);
-
 
             MapMessage reply = (MapMessage) jmsContext.createConsumer(replyQueue).receive();
 
