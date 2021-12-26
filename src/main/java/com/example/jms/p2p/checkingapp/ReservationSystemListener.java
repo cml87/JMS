@@ -8,10 +8,10 @@ import java.time.Period;
 
 public class ReservationSystemListener implements MessageListener {
 
-    private String minimumAgeYearsStr;
+    private int minimumAgeYears;
 
-    public void setMinimumAgeYearsStr(String minimumAgeYearsStr) {
-        this.minimumAgeYearsStr = minimumAgeYearsStr;
+    public void setMinimumAgeYears(int minimumAgeYears) {
+        this.minimumAgeYears = minimumAgeYears;
     }
 
      @Override
@@ -36,11 +36,11 @@ public class ReservationSystemListener implements MessageListener {
             System.out.println("Today is: "+ now.toString());
             int personAge = Period.between(person.getBirthDay(), now).getYears();
             System.out.println("Person's age is: "+ personAge);
-            if (personAge>= Integer.parseInt(minimumAgeYearsStr)){
-                System.out.println("Person's age is above the minimum "+minimumAgeYearsStr);
+            if (personAge>= minimumAgeYears){
+                System.out.println("Person's age is above the minimum "+minimumAgeYears);
                 mapMessage.setBoolean("isReservationDone", true);
             } else {
-                System.out.println("Person's age is below the minimum "+minimumAgeYearsStr);
+                System.out.println("Person's age is below the minimum "+minimumAgeYears);
                 mapMessage.setBoolean("isReservationDone", false);
             }
 

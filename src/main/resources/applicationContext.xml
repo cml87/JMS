@@ -10,7 +10,7 @@
     <context:property-placeholder location="classpath:application.properties"/>
 
     <bean name="reservationSystemListener"  class="com.example.jms.p2p.checkingapp.ReservationSystemListener">
-        <property name="minimumAgeYearsStr" value="${minimumAgeYearsStr}"/>
+        <property name="minimumAgeYears" value="${minimumAgeYears}"/>
     </bean>
 
 </beans>
