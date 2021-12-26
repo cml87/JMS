@@ -1,7 +1,6 @@
 package com.example.jms.p2p.checkingapp;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
-import org.springframework.beans.factory.annotation.Value;
 
 import javax.jms.*;
 import java.time.LocalDate;
@@ -9,13 +8,13 @@ import java.time.Period;
 
 public class ReservationSystemListener implements MessageListener {
 
-    private int minimumAgeYears;
+    private String minimumAgeYearsStr;
 
-    public void setMinimumAgeYears(int minimumAgeYears) {
-        this.minimumAgeYears = minimumAgeYears;
+    public void setMinimumAgeYearsStr(String minimumAgeYearsStr) {
+        this.minimumAgeYearsStr = minimumAgeYearsStr;
     }
 
-    @Override
+     @Override
     public void onMessage(Message message) {
 
         System.out.println("listener method in ...");
@@ -37,11 +36,11 @@ public class ReservationSystemListener implements MessageListener {
             System.out.println("Today is: "+ now.toString());
             int personAge = Period.between(person.getBirthDay(), now).getYears();
             System.out.println("Person's age is: "+ personAge);
-            if (personAge>= minimumAgeYears){
-                System.out.println("Person's age is above the minimum "+minimumAgeYears);
+            if (personAge>= Integer.parseInt(minimumAgeYearsStr)){
+                System.out.println("Person's age is above the minimum "+minimumAgeYearsStr);
                 mapMessage.setBoolean("isReservationDone", true);
             } else {
-                System.out.println("Person's age is below the minimum "+minimumAgeYears);
+                System.out.println("Person's age is below the minimum "+minimumAgeYearsStr);
                 mapMessage.setBoolean("isReservationDone", false);
             }
 
