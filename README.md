@@ -731,7 +731,7 @@ public class RequestReplyDemo {
    }
 }
 ```
-In my experiments the correlationId of the consumed reply, in the producer side, will result equal to the correlationId we set in the reply message, in the consumer side, <u>only if</u> the replay queue is a `TemporaryQueue`, I don't know why ??? 
+In my experiments the correlationId of the consumed reply, in the producer side, will result equal to the correlationId we set in the reply message, in the consumer side, <u>only if</u> the replay queue is a `TemporaryQueue`, I don't know why ---> False. It was due to the fact that in the reply queue gotten from the JNDI tree, there were messages already, before I was adding my new reply to the queue. On the other hand, the temporary queue was always empty.
 
 Notice also how we can add sent messages in the producer side to a Map, using as key the messageID, and then retrieve them using as key the correlationId of the reply message. This is how we set the request-reply linkage.
 
@@ -849,12 +849,14 @@ public class MessagePropertiesDemo {
 ```
 
 ## Types of messages
-Among the types of messages we can send with JMS, there are 5 implementing the <u>`Message` interface</u>:
+Among the types of messages we can send with JMS, there are 5 implementing the <u>interface</u> `javax.jms.Message`. <u>These are also interfaces</u> belonging to package `javax.jms`:
 1. TextMessage: Used to send text data as Strings
 2. ByteMessage: Bytes, binary level 
 3. ObjectMessage: send an object that can be (de)serialized.
 4. StreamMessage: Stream Java objects and wrap primitive types? The consumer must read the stream in the same order it was written by the producer ?
 5. MapMessage: A set of key-value pairs
+
+JMS providers, such as Apache ActiveMQ, implement these interfaces in concrete classes. For example, interface `ObjectMessage` is implemented by `ActiveMQObjectMessage`.
 
 It's not clear to me when to use which one. The way in which we set and fetch the payload for each of these message is different (read and write methods to be used).
 
@@ -1018,7 +1020,7 @@ public class MessageTypesDemo {
     }
 }
 ```
-However, if we want to set headers or properties, we do need to create and send a type implementing `Message`, because we cannot directly set these in the object we are sending. In this case would use the setters methods such as `setText()`, for a `TextMessage`, or `setObject()`, for an `ObjectMessage`, to set the payload of the message before sending it.
+However, <u>if we want to set headers or properties, we do need to create and send a type implementing `Message`</u>, because we cannot directly set these in the object we are sending. In this case would use the setters methods such as `setText()`, for a `TextMessage`, or `setObject()`, for an `ObjectMessage`, to set the payload of the message before sending it.
 
 ## Point-to-Point messages (P2P)
 P2P communication is used in the fallowing cases:
@@ -1089,7 +1091,10 @@ public class EligibilityCheckerApp {
       JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
       consumer.setMessageListener(new EligibilityCheckListener());
 
+      // This is the time the consumer will be up
+      // If the application is deployed in an application server, this command is not needed  
       Thread.sleep(10000);
+    
     }
     System.out.println("Listener app finished");
   }
@@ -1102,6 +1107,7 @@ public class EligibilityCheckListener implements MessageListener {
     @Override
     public void onMessage(Message message) {
 
+        // we know that the listened queue will have an ObjectMessage, so we can apply this casting here
         ObjectMessage objectMessage = (ObjectMessage) message;
 
         try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
