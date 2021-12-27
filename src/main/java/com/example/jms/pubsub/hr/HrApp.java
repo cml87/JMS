@@ -25,6 +25,7 @@ public class HrApp {
             // we send the message directly
             producer.send(topic, employee);
 
+            System.out.println("message sent");
 
 
         }
