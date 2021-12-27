@@ -25,11 +25,6 @@ public class SecurityApp {
 
             System.out.println(employee.getFirstName());
 
-
         }
-
-
     }
-
-
 }

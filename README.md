@@ -1477,8 +1477,57 @@ be consumed with load balance by the three consumers!
 ## PUB-SUB messaging
 In the PUB-SUB messaging model the destination is called a _topic_. _Subscribers_ subscribe to this topic ahead of time (before messages start arriving to the topic). When a message arrive to the topic, the JMS provider will ensure it is broadcasted to _all_ subscribed subscribers to the topic. Different to the P2P model, now a same message will be received by different applications. The PUB-SUB model is used when an application needs to communicate a same event to several other applications.
 
-The PUB-SUB model supports the so called **durable** subscription and the **shared** subscription, as as we'll see below.
+The PUB-SUB model supports the so called **durable** subscription and the **shared** subscription, as we'll see below.
+ 
+A simple example of application using the PUB-SUB model is shown below. There will be three identical subscribers `PayrollApp`, `SecurityApp` and `WellnessApp`, all subscribed to the topic `topic/empTopic`. This topic will be defined in the `jndi.properties` file with the line `topic.topic/empTopic=empTopicl`. The producer application will be `HrApp`, which will send a single message to the topic.
+```java
+// producer application
+// prints: "message sent"
+public class HrApp {
 
+    public static void main(String[] args) throws NamingException {
+
+        InitialContext context = new InitialContext();
+        Topic topic = (Topic) context.lookup("topic/empTopic");
+
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()){
+
+            Employee employee = new Employee(1,"Paul", "White","pepe@gmail.com","developer","0122234344");
+            JMSProducer producer = jmsContext.createProducer();
+            // we send the message directly
+            producer.send(topic, employee);
+            System.out.println("message sent");
+        }
+    }
+}
+```
+```java
+// prints: In PayrollApp ...
+//         Paul
+public class PayrollApp {
+    public static void main(String[] args) throws NamingException, JMSException {
+        System.out.println("In PayrollApp ...");
+       
+        InitialContext context = new InitialContext();
+        Topic topic = (Topic) context.lookup("topic/empTopic");
+       
+        try(ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+            JMSContext jmsContext = cf.createContext()){
+       
+            JMSConsumer consumer = jmsContext.createConsumer(topic);
+            Message message = consumer.receive();
+       
+            Employee employee = message.getBody(Employee.class);
+       
+            System.out.println(employee.getFirstName());
+        }
+    }
+}
+```
+```java
+// identical for SecurityApp and WellnesApp
+```
 
 
 

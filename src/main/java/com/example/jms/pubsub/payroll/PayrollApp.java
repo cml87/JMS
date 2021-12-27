@@ -25,11 +25,6 @@ public class PayrollApp {
 
             System.out.println(employee.getFirstName());
 
-
         }
-
-
     }
-
-
 }

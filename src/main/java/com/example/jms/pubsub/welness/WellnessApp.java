@@ -25,11 +25,6 @@ public class WellnessApp {
 
             System.out.println(employee.getFirstName());
 
-
         }
-
-
     }
-
-
 }
