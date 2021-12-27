@@ -1528,7 +1528,7 @@ public class PayrollApp {
 ```java
 // identical for SecurityApp and WellnesApp
 ```
-### Durable subscription
+### Durable subscription ?
 In the PUB-SUB model, a JMS provider will broadcast a message that has arrived to a topic to all subscribers the topic has at that moment, and that are able to receive the message at that moment (are running). After, the provider will delete the message. However, there may be an application, or a subscriber, that really needs to receive the messages arrived to the topic, even if when these arrived, it was not up-and-running. In a normal scenario, this application will simply mess the message. To solve this issue, JMS providers allow for **durable** subscribers.
 
 Durable subscribers are subscribers "known" to the topic, for which the JMS provider will keep every message in the topic until it is assured the subscribed received it. After if it deleted. This way, a subscriber that happens to be down when a message arrive to the topic, can receive it after it is up again. Only then the JMS provider will delete the message from the topic.
