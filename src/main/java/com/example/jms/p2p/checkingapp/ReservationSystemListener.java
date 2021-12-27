@@ -25,7 +25,7 @@ public class ReservationSystemListener implements MessageListener {
      @Override
     public void onMessage(Message message) {
 
-        System.out.println("listener method in ...");
+        //System.out.println("listener method in ...");
 
         ObjectMessage objectMessage = (ObjectMessage)message;
 
@@ -35,27 +35,30 @@ public class ReservationSystemListener implements MessageListener {
             Queue replyQueue = (Queue) objectMessage.getJMSReplyTo();
 
             MapMessage mapMessage = jmsContext.createMapMessage();
-            mapMessage.setJMSCorrelationID(objectMessage.getJMSMessageID());
+            //mapMessage.setJMSCorrelationID(objectMessage.getJMSMessageID());
 
             // request processing
             Person person = (Person) objectMessage.getObject();
-            System.out.println("received person's birthday: "+ person.getBirthDay().toString());
+            mapMessage.setJMSCorrelationID(String.valueOf(person.getId()));
+            //System.out.println("received person's birthday: "+ person.getBirthDay().toString());
+            System.out.printf("processing Person of Id: [%s]\n", person.getId());
+
             LocalDate now = LocalDate.now();
-            System.out.println("Today is: "+ now.toString());
+            //System.out.println("Today is: "+ now.toString());
             int personAge = Period.between(person.getBirthDay(), now).getYears();
-            System.out.println("Person's age is: "+ personAge);
+            //System.out.println("Person's age is: "+ personAge);
             if (personAge>= minimumAgeYears){
-                System.out.println("Person's age is above the minimum "+minimumAgeYears);
+                //System.out.println("Person's age is above the minimum "+minimumAgeYears);
                 mapMessage.setBoolean("isReservationDone", true);
             } else {
-                System.out.println("Person's age is below the minimum "+minimumAgeYears);
+                //System.out.println("Person's age is below the minimum "+minimumAgeYears);
                 mapMessage.setBoolean("isReservationDone", false);
             }
 
             JMSProducer producer = jmsContext.createProducer();
             producer.send(replyQueue, mapMessage);
 
-            System.out.println("listener method out");
+            //System.out.println("listener method out");
 
 
         } catch (JMSException e) {

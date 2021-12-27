@@ -1230,7 +1230,7 @@ The client code will send requests to the server code through a queue `requestQu
 We'll use a P2P messaging model. The messages will make use of the `replyTo` and `correlationId` to establish the request-response relationship. Load balancing will also be illustrated through several consumer, or listeners, attached to the same request queue.
 
 
-
+If there a
 
 
 
