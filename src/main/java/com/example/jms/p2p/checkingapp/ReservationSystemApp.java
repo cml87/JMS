@@ -2,6 +2,7 @@ package com.example.jms.p2p.checkingapp;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import javax.jms.JMSConsumer;
@@ -19,7 +20,10 @@ public class ReservationSystemApp {
         InitialContext initialContext = new InitialContext();
         Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
 
-        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("applicationContext.xml");
+//        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("applicationContext.xml");
+
+       ApplicationContext applicationContext = new AnnotationConfigApplicationContext(AppConfig.class);
+
         ReservationSystemListener reservationSystemListener = applicationContext.getBean("reservationSystemListener",
                                                             ReservationSystemListener.class);
 
