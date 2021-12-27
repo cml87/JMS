@@ -20,9 +20,8 @@ public class ReservationSystemApp {
         InitialContext initialContext = new InitialContext();
         Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
 
-//        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("applicationContext.xml");
-
-       ApplicationContext applicationContext = new AnnotationConfigApplicationContext(AppConfig.class);
+        //ApplicationContext applicationContext = new ClassPathXmlApplicationContext("applicationContext.xml");
+        ApplicationContext applicationContext = new AnnotationConfigApplicationContext(AppConfig.class);
 
         ReservationSystemListener reservationSystemListener = applicationContext.getBean("reservationSystemListener",
                                                             ReservationSystemListener.class);

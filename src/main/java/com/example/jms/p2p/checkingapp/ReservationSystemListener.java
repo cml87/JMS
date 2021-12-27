@@ -1,13 +1,21 @@
 package com.example.jms.p2p.checkingapp;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.stereotype.Component;
 
 import javax.jms.*;
 import java.time.LocalDate;
 import java.time.Period;
 
+
+@Component
+@PropertySource(value = "classpath:/application.properties")
 public class ReservationSystemListener implements MessageListener {
 
+    @Value("${minimumAgeYears}")
     private int minimumAgeYears;
 
     public void setMinimumAgeYears(int minimumAgeYears) {
