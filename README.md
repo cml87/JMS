@@ -1229,8 +1229,250 @@ The client code will send requests to the server code through a queue `requestQu
 
 We'll use a P2P messaging model. The messages will make use of the `replyTo` and `correlationId` to establish the request-response relationship. Load balancing will also be illustrated through several consumer, or listeners, attached to the same request queue.
 
+Here is how I did this assignment. Sout lines has been commented to not clutter the output when running three listeners and one producer (to illustrate load balancing):
+```java
+// producer application. It sends messages to the requestQueue and expects the reply in the replyQueue
+public class CheckingApp {
+//    public Person(int id, String firstName, String lastName, LocalDate birthDay, String phone, String email) {
 
-If there a
+  public static void main(String[] args) throws NamingException, JMSException {
+
+    InitialContext initialContext = new InitialContext();
+    Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
+    Queue replyQueue = (Queue) initialContext.lookup("queue/replyQueue");
+
+    try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+         JMSContext jmsContext = cf.createContext()) {
+
+      Person person = new Person(123, "John", "Smith",
+              LocalDate.parse("2003-11-24"), "+01 7896787788", "pepe@gmail.com");
+
+      List<Person> personList = new ArrayList<>();
+      for (int i = 0 ; i < 100; i++){
+        personList.add(new Person(i, "John", "Smith",
+                LocalDate.parse("2003-11-24"), "+01 7896787788", "pepe@gmail.com"));
+      }
+
+
+      JMSProducer producer = jmsContext.createProducer();
+      producer.setJMSReplyTo(replyQueue);
+
+      ObjectMessage message = jmsContext.createObjectMessage();
+
+      //message.setJMSReplyTo(replyQueue);
+      for (int i = 0 ; i < 100; i++) {
+        message.setObject(personList.get(i));
+        producer.send(requestQueue, message);
+        System.out.printf("MessageId sent by producer: [%s]. PersonId[%s]:\n", message.getJMSMessageID(),
+                ((Person)message.getObject()).getId());
+      }
+
+      System.out.println("\n\nWaiting 20 seconds for responses to arrive to replyQueue ...");
+      Thread.sleep(20000);
+
+      //Map<String, ObjectMessage> messages = new HashMap<>();
+      //messages.put(message.getJMSMessageID(), message);
+
+      JMSConsumer consumer = jmsContext.createConsumer(replyQueue);
+      for (int i = 0 ; i < 100; i++) {
+        MapMessage reply = (MapMessage) consumer.receive();
+        System.out.printf("CorrelationId received in reply: [%s]\n", reply.getJMSCorrelationID());
+      }
+      //System.out.println("reply message: isReservationDone: "+ reply.getBoolean("isReservationDone"));
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+}
+```
+
+```java
+// listener application (it has a main() method)
+public class ReservationSystemApp {
+  public static void main (String[] args) throws NamingException, InterruptedException {
+    System.out.println("Listener application started ...");
+
+    InitialContext initialContext = new InitialContext();
+    Queue requestQueue = (Queue) initialContext.lookup("queue/requestQueue");
+
+    //ApplicationContext applicationContext = new ClassPathXmlApplicationContext("applicationContext.xml");
+    ApplicationContext applicationContext = new AnnotationConfigApplicationContext(AppConfig.class);
+
+    ReservationSystemListener reservationSystemListener = applicationContext.getBean("reservationSystemListener",
+            ReservationSystemListener.class);
+
+    try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+         JMSContext jmsContext = cf.createContext()){
+
+      JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
+      consumer.setMessageListener(reservationSystemListener);
+      Thread.sleep(15000);
+    }
+    System.out.println("Listener application ended");
+  }
+}
+```
+```java
+// listener class of the consumer application
+@Component
+@PropertySource(value = "classpath:/application.properties")
+public class ReservationSystemListener implements MessageListener {
+
+    @Value("${minimumAgeYears}")
+    private int minimumAgeYears;
+
+    public void setMinimumAgeYears(int minimumAgeYears) {
+        this.minimumAgeYears = minimumAgeYears;
+    }
+
+     @Override
+    public void onMessage(Message message) {
+
+        //System.out.println("listener method in ...");
+
+        ObjectMessage objectMessage = (ObjectMessage)message;
+
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()){
+
+            Queue replyQueue = (Queue) objectMessage.getJMSReplyTo();
+
+            MapMessage mapMessage = jmsContext.createMapMessage();
+            //mapMessage.setJMSCorrelationID(objectMessage.getJMSMessageID());
+
+            // request processing
+            Person person = (Person) objectMessage.getObject();
+            mapMessage.setJMSCorrelationID(String.valueOf(person.getId()));
+            //System.out.println("received person's birthday: "+ person.getBirthDay().toString());
+            System.out.printf("processing Person of Id: [%s]\n", person.getId());
+
+            LocalDate now = LocalDate.now();
+            //System.out.println("Today is: "+ now.toString());
+            int personAge = Period.between(person.getBirthDay(), now).getYears();
+            //System.out.println("Person's age is: "+ personAge);
+            if (personAge>= minimumAgeYears){
+                //System.out.println("Person's age is above the minimum "+minimumAgeYears);
+                mapMessage.setBoolean("isReservationDone", true);
+            } else {
+                //System.out.println("Person's age is below the minimum "+minimumAgeYears);
+                mapMessage.setBoolean("isReservationDone", false);
+            }
+
+            JMSProducer producer = jmsContext.createProducer();
+            producer.send(replyQueue, mapMessage);
+
+            //System.out.println("listener method out");
+
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+```java
+// Spring beans config class
+//@Configuration
+@ComponentScan("com.example.jms.p2p.checkingapp")
+public class AppConfig {
+}
+```
+```text
+// resources/applications.propeties
+minimumAgeYears=23
+```
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>jmsfundamentals</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>JMS Fundamentals</name>
+    <description>Demo project for JMS</description>
+
+    <properties>
+        <java.version>1.8</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <archive>
+                    <!--I will specify the main calls to be ran when running the jar-->
+<!--                        <manifest>-->
+<!--                            <mainClass>com.yourcompany.youapp.Main</mainClass>-->
+<!--                        </manifest>-->
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-jar-with-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>5.2.0.RELEASE</version>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.apache.activemq/artemis-jms-client-all -->
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>artemis-jms-client-all</artifactId>
+            <version>2.6.4</version>
+        </dependency>
+
+    </dependencies>
+</project>
+```
+In the pom file notice the plugin maven-assembly-plugin to build a jar (`mvn package`) with all Spring dependencies included, so we can run the application as a standalone a application without passing any dependencies in the classpath, as shown below. 
+
+To test my application with load balancing:
+1. I start three instances of the consumer application, all listening to the same queue, requestQueue, and replying also to the same queue, replyQueue. Do this by running in three separate shells the program:
+ `java -cp  /home/camilo/my_java_projects/JMS/target/jmsfundamentals-0.0.1-SNAPSHOT-jar-with-dependencies.jar com.example.jms.p2p.checkingapp.ReservationSystemApp`
+2. There will be only one instance of the producer application adding messages to the requestQueue:
+ `java -cp  /home/camilo/my_java_projects/JMS/target/jmsfundamentals-0.0.1-SNAPSHOT-jar-with-dependencies.jar com.example.jms.p2p.checkingapp.CheckingApp`
+
+After I start the three consumers, or listeners, I start the producer application. It will quickly add 100 messages to the requestQueue, all of which will 
+be consumed with load balance by the three consumers!
 
 
 
