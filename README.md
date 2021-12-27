@@ -1474,6 +1474,14 @@ To test my application with load balancing:
 After I start the three consumers, or listeners, I start the producer application. It will quickly add 100 messages to the requestQueue, all of which will 
 be consumed with load balance by the three consumers!
 
+## PUB-SUB messaging
+In the PUB-SUB messaging model the destination is called a _topic_. _Subscribers_ subscribe to this topic ahead of time (before messages start arriving to the topic). When a message arrive to the topic, the JMS provider will ensure it is broadcasted to _all_ subscribed subscribers to the topic. Different to the P2P model, now a same message will be received by different applications. The PUB-SUB model is used when an application needs to communicate a same event to several other applications.
+
+The PUB-SUB model supports the so called **durable** subscription and the **shared** subscription, as as we'll see below.
+
+
+
+
 
 
 
