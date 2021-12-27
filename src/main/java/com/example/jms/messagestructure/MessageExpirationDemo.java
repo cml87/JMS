@@ -5,7 +5,6 @@ import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import javax.jms.*;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.xml.soap.Text;
 
 import static java.lang.Thread.*;
 

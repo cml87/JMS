@@ -1,7 +1,6 @@
 package com.example.jms.messagestructure;
 
 import com.example.jms.model.Patient;
-import com.sun.beans.editors.ByteEditor;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 
 import javax.jms.*;
