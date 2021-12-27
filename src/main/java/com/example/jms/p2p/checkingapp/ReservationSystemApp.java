@@ -32,7 +32,7 @@ public class ReservationSystemApp {
             JMSConsumer consumer = jmsContext.createConsumer(requestQueue);
             consumer.setMessageListener(reservationSystemListener);
 
-            Thread.sleep(7000);
+            Thread.sleep(15000);
 
         }
 
