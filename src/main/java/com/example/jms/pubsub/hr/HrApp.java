@@ -17,16 +17,21 @@ public class HrApp {
         Topic topic = (Topic) context.lookup("topic/empTopic");
 
         try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
-             JMSContext jmsContext = cf.createContext()){
+             JMSContext jmsContext = cf.createContext()) {
 
-            Employee employee = new Employee(1,"Paul", "White","pepe@gmail.com","developer","0122234344");
+            // Employee employee = new Employee(1,"Paul", "White","pepe@gmail.com","developer","0122234344");
 
             JMSProducer producer = jmsContext.createProducer();
             // we send the message directly
-            producer.send(topic, employee);
+
+            Employee employee;
+            for (int i = 0; i < 10; i++) {
+                employee = new Employee(i, "Paul", "White", "pepe@gmail.com", "developer", "0122234344");
+                producer.send(topic, employee);
+            }
+
 
             System.out.println("message sent");
-
 
         }
 

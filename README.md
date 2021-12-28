@@ -1584,11 +1584,76 @@ public class SecurityApp {
 }
 ```
 
-### Shared consumer
+### Shared consumer ?
 
-There are also persistence massages, where messages are stored to a db or a file system.
-ClientId, SubscriptionName
+A shared consumer is a consumer that "shares" the reading of messages from a topic with other consumer(s). Shared consumers form a set identified by a unique id, or shared subscription name. They are "shared" in the sense that only one consumer in the set will receive each message in the topic, even though all of them all subscribed to the topic. When one of the consumer in the set receives a message, the message will be deleted from the topic. This allows for load balancing. 
 
+I tried to make an example of shared consumer, as shown below, but it **didn't work**, and I don't know why. In the example, the `HrApp` will send 10 messages to the topic, which should be read by the two shared subscribers this topic has, in the `WellnessApp`: 
+```java
+public class HrApp {
+
+    public static void main(String[] args) throws NamingException {
+
+        InitialContext context = new InitialContext();
+        Topic topic = (Topic) context.lookup("topic/empTopic");
+
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()) {
+
+            // Employee employee = new Employee(1,"Paul", "White","pepe@gmail.com","developer","0122234344");
+
+            JMSProducer producer = jmsContext.createProducer();
+            // we send the message directly
+
+            Employee employee;
+            for (int i = 0; i < 10; i++) {
+                employee = new Employee(i, "Paul", "White", "pepe@gmail.com", "developer", "0122234344");
+                producer.send(topic, employee);
+            }
+
+            System.out.println("message sent");
+        }
+    }
+}
+```
+```java
+public class WellnessApp {
+
+    public static void main(String[] args) throws NamingException, JMSException {
+
+        System.out.println("In WellnessApp ...");
+
+        InitialContext context = new InitialContext();
+        Topic topic = (Topic) context.lookup("topic/empTopic");
+
+        try (ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+             JMSContext jmsContext = cf.createContext()) {
+
+            //JMSConsumer consumer = jmsContext.createConsumer(topic);
+            JMSConsumer consumer1 = jmsContext.createSharedConsumer(topic, "sharedConsumerPool1");
+            JMSConsumer consumer2 = jmsContext.createSharedConsumer(topic, "sharedConsumerPool1");
+
+            Employee employee;
+            Message message;
+            System.out.println("a");
+            for (int i = 0; i < 9; i++) {
+
+                System.out.println("b-"+i);
+                message = consumer1.receive();
+                employee = message.getBody(Employee.class);
+                System.out.println("received employed of id: "+employee.getId());
+
+                message = consumer2.receive();
+                employee = message.getBody(Employee.class);
+                System.out.println("received employed of id: "+employee.getId());
+            }
+
+        }
+    }
+}
+```
+
+# END. This is a bad course. The author does not actually know JMS and has no work experience on it, in my opinion
 
 
 
