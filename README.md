@@ -1653,7 +1653,7 @@ public class WellnessApp {
 }
 ```
 
-# END. This is a bad course. The author does not actually know JMS and has no work experience on it, in my opinion
+# END. This is a bad course. The author does not actually know JMS and has no work experience on it, in my opinion. I will check the course Enterprise Messaging, by Mark Richards, on O'reilly learning.
 
 
 
