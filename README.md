@@ -1,6 +1,8 @@
 # Java Messaging Service, JMS Fundamentals
 ### by Bharath Thippireddy, <span style="color:green">Udemy</span>
 
+See Enterprise Messaging: JMS 1.1 and JMS 2.0 Fundamentals, by Mark Richards. Much better than this!
+
 The courser will make use of APIs JMS 1.x and JMS 2.x. For the JMS provider we'll use **Apache ActiveMQ Artemis**.
 We will deploy a Java EE application in Jboss.
 
@@ -1653,7 +1655,7 @@ public class WellnessApp {
 }
 ```
 
-# END. This is a bad course. The author does not actually know JMS and has no work experience on it, in my opinion. I will check the course Enterprise Messaging, by Mark Richards, on O'reilly learning.
+# END. I arrived until the end of Section 8 . This is a bad course. The author does not actually know JMS and has no work experience on it, in my opinion. I will check the course Enterprise Messaging, by Mark Richards, on O'reilly learning.
 
 
 
